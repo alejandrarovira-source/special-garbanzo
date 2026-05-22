@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S.O.S — Survival on Scenarios</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --earth: #2C3E2D;
+    --moss: #4A6741;
+    --sage: #7A9E6E;
+    --sand: #D4B896;
+    --bark: #8B6914;
+    --clay: #C4522A;
+    --sky: #5B8FA8;
+    --snow: #F2EDE4;
+    --dark: #1A2319;
+    --alert: #E8472A;
+    --gold: #D4A017;
+    --text: #1A2319;
+    --muted: #6B7B6A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--snow);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── LOADING ── */
+  #loading {
+    position: fixed; inset: 0; background: var(--dark);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 999; transition: opacity .6s;
+  }
+  #loading .sos-logo { font-family: 'Bebas Neue', sans-serif; font-size: 96px; color: var(--clay); letter-spacing: 8px; animation: pulse 1.2s infinite alternate; }
+  #loading .sos-sub { font-size: 13px; letter-spacing: 3px; color: var(--sage); margin-top: -10px; }
+  @keyframes pulse { from { opacity:.6; } to { opacity:1; } }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; padding-bottom: 80px; }
+  .screen.active { display: block; animation: fadeIn .4s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: none; } }
+
+  /* ── BOTTOM NAV ── */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--earth);
+    border-top: 1px solid rgba(122,158,110,.3);
+    display: flex; z-index: 100;
+  }
+  nav button {
+    flex: 1; padding: 12px 4px; background: none; border: none; color: var(--muted);
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: .5px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; transition: color .2s;
+  }
+  nav button.active { color: var(--sage); }
+  nav button .icon { font-size: 22px; }
+
+  /* ── HOME ── */
+  #home { background: var(--dark); }
+  .hero {
+    position: relative; min-height: 260px;
+    background: linear-gradient(160deg, var(--earth) 0%, #1a2e1a 100%);
+    padding: 48px 24px 32px;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='rgba(122,158,110,0.06)' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='25' fill='none' stroke='rgba(122,158,110,0.04)' stroke-width='1'/%3E%3C/svg%3E") repeat;
+  }
+  .hero-tag { font-size: 11px; letter-spacing: 3px; color: var(--sage); margin-bottom: 8px; }
+  .hero h1 { font-family: 'Bebas Neue'; font-size: 68px; line-height: 1; color: var(--snow); }
+  .hero h1 span { color: var(--clay); }
+  .hero p { font-size: 14px; color: var(--sand); margin-top: 10px; font-weight: 300; max-width: 280px; line-height: 1.6; }
+  .sos-badge {
+    position: absolute; right: 24px; top: 44px;
+    width: 72px; height: 72px; border: 3px solid var(--clay);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue'; font-size: 26px; color: var(--clay);
+    box-shadow: 0 0 20px rgba(196,82,42,.3);
+    animation: rotate 20s linear infinite;
+  }
+  @keyframes rotate { to { transform: rotate(360deg); } }
+
+  .section-title {
+    font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 2px;
+    color: var(--sage); padding: 24px 20px 12px;
+  }
+
+  /* Environments grid */
+  .env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px; }
+  .env-card {
+    border-radius: 16px; overflow: hidden; cursor: pointer;
+    position: relative; height: 130px;
+    transition: transform .2s, box-shadow .2s;
+    border: 1px solid rgba(255,255,255,.05);
+  }
+  .env-card:hover, .env-card:active { transform: scale(.97); }
+  .env-card .bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 48px; }
+  .env-card .overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.8) 0%, transparent 60%);
+  }
+  .env-card .info { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px; }
+  .env-card .info h3 { font-family: 'Bebas Neue'; font-size: 18px; letter-spacing: 1px; }
+  .env-card .info .badge {
+    display: inline-block; font-size: 9px; letter-spacing: 2px; padding: 2px 6px;
+    border-radius: 20px; margin-bottom: 4px;
+  }
+  .free { background: rgba(122,158,110,.3); color: var(--sage); border: 1px solid var(--sage); }
+  .premium { background: rgba(212,160,23,.2); color: var(--gold); border: 1px solid var(--gold); }
+  .env-montana { background: linear-gradient(135deg, #2d4a2d, #1a3320); }
+  .env-bosque { background: linear-gradient(135deg, #1e3a1e, #263d1c); }
+  .env-costa { background: linear-gradient(135deg, #1a2e3d, #1a3346); }
+  .env-desierto { background: linear-gradient(135deg, #3d2e1a, #4a3010); }
+  .env-selva { background: linear-gradient(135deg, #1a3a1a, #0d2b0d); }
+
+  /* Quick situations */
+  .situations { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; }
+  .sit-btn {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 14px 16px; cursor: pointer;
+    transition: background .2s; text-align: left; width: 100%; color: var(--snow);
+    font-family: 'DM Sans';
+  }
+  .sit-btn:hover { background: rgba(255,255,255,.08); }
+  .sit-btn .icon { font-size: 28px; flex-shrink: 0; }
+  .sit-btn .label { font-size: 14px; font-weight: 500; }
+  .sit-btn .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .alert-strip {
+    margin: 20px 20px 0; padding: 14px 16px;
+    background: rgba(196,82,42,.15); border: 1px solid rgba(196,82,42,.4);
+    border-radius: 12px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .alert-strip .icon { font-size: 22px; flex-shrink: 0; }
+  .alert-strip .text { font-size: 12px; color: var(--sand); line-height: 1.5; }
+  .alert-strip strong { color: var(--clay); }
+
+  /* ── THEORY / APRENDE ── */
+  #aprende { background: var(--dark); }
+  .aprende-header { padding: 50px 20px 20px; background: linear-gradient(to bottom, var(--earth), var(--dark)); }
+  .aprende-header h2 { font-family: 'Bebas Neue'; font-size: 40px; letter-spacing: 2px; }
+  .aprende-header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .tab-bar { display: flex; gap: 8px; padding: 0 20px 16px; overflow-x: auto; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,.15);
+    background: none; color: var(--muted); font-family: 'DM Sans'; font-size: 12px;
+    cursor: pointer; white-space: nowrap; transition: all .2s;
+  }
+  .tab-btn.active { background: var(--sage); border-color: var(--sage); color: var(--dark); font-weight: 600; }
+
+  .theory-content { padding: 0 20px; }
+  .ficha {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px; margin-bottom: 16px; overflow: hidden;
+  }
+  .ficha-header {
+    padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+    user-select: none;
+  }
+  .ficha-header .num { font-family: 'Bebas Neue'; font-size: 14px; color: var(--sage); min-width: 40px; }
+  .ficha-header h3 { font-size: 15px; font-weight: 500; flex: 1; }
+  .ficha-header .arrow { color: var(--muted); transition: transform .3s; }
+  .ficha.open .arrow { transform: rotate(180deg); }
+  .ficha-body { display: none; padding: 0 16px 16px; }
+  .ficha.open .ficha-body { display: block; animation: fadeIn .3s; }
+  .ficha-body p, .ficha-body li { font-size: 13px; color: var(--sand); line-height: 1.7; }
+  .ficha-body ul { list-style: none; padding: 0; }
+  .ficha-body ul li { padding: 4px 0; padding-left: 16px; position: relative; }
+  .ficha-body ul li::before { content: '▸'; position: absolute; left: 0; color: var(--sage); }
+  .info-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .info-table th { font-size: 11px; letter-spacing: 1px; color: var(--muted); text-align: left; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .info-table td { font-size: 12px; color: var(--sand); padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: top; }
+  .info-table td:first-child { color: var(--snow); font-weight: 500; padding-right: 12px; width: 40%; }
+  .tip-box {
+    margin-top: 12px; padding: 10px 14px;
+    background: rgba(196,82,42,.1); border-left: 3px solid var(--clay);
+    border-radius: 0 8px 8px 0; font-size: 12px; color: var(--sand); line-height: 1.6;
+  }
+  .apply-box {
+    margin-top: 12px; padding: 12px 14px;
+    background: rgba(122,158,110,.1); border-left: 3px solid var(--sage);
+    border-radius: 0 8px 8px 0;
+  }
+  .apply-box .apply-label { font-size: 10px; letter-spacing: 2px; color: var(--sage); margin-bottom: 4px; }
+  .apply-box p { font-size: 12px; color: var(--sand); line-height: 1.6; }
+
+  /* ── PREP MODULE ── */
+  .prep-module { padding: 0 20px 20px; }
+  .prep-intro { background: rgba(91,143,168,.12); border: 1px solid rgba(91,143,168,.3); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .prep-intro h3 { font-family: 'Bebas Neue'; font-size: 24px; letter-spacing: 1px; color: var(--sky); margin-bottom: 6px; }
+  .prep-intro p { font-size: 13px; color: var(--sand); line-height: 1.6; }
+  .prep-content-block { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .prep-content-block h4 { font-size: 14px; font-weight: 600; color: var(--snow); margin-bottom: 8px; }
+  .prep-content-block p, .prep-content-block li { font-size: 13px; color: var(--sand); line-height: 1.6; }
+  .prep-content-block ul { list-style: none; padding: 0; }
+  .prep-content-block ul li { padding: 3px 0 3px 16px; position: relative; }
+  .prep-content-block ul li::before { content: '▸'; position: absolute; left: 0; color: var(--sage); }
+  .prep-apply { margin-top: 10px; padding: 10px 14px; background: rgba(122,158,110,.1); border-left: 3px solid var(--sage); border-radius: 0 8px 8px 0; }
+  .prep-apply .apply-label { font-size: 10px; letter-spacing: 2px; color: var(--sage); margin-bottom: 4px; }
+  .prep-apply p { font-size: 12px; color: var(--sand); line-height: 1.6; }
+  .start-quiz-btn { width: 100%; padding: 16px; background: var(--clay); color: white; border: none; border-radius: 14px; font-family: 'DM Sans'; font-size: 16px; font-weight: 700; cursor: pointer; letter-spacing: 1px; margin-bottom: 8px; transition: background .2s; }
+  .start-quiz-btn:hover { background: #d45c30; }
+  .quiz-wrap { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 20px; margin-top: 8px; }
+  .quiz-q-num { font-size: 11px; letter-spacing: 2px; color: var(--sage); margin-bottom: 10px; }
+  .quiz-question { font-family: 'Bebas Neue'; font-size: 20px; letter-spacing: 1px; margin-bottom: 16px; line-height: 1.3; }
+  .quiz-choices { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-choice { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 12px 14px; cursor: pointer; text-align: left; color: var(--snow); font-family: 'DM Sans'; font-size: 13px; line-height: 1.5; transition: all .2s; }
+  .quiz-choice:hover { background: rgba(255,255,255,.09); border-color: var(--sage); }
+  .quiz-choice.correct { background: rgba(122,158,110,.2); border-color: var(--sage); }
+  .quiz-choice.wrong { background: rgba(196,82,42,.2); border-color: var(--clay); }
+  .quiz-feedback { display: none; margin-top: 14px; border-radius: 10px; padding: 14px; font-size: 13px; line-height: 1.6; }
+  .quiz-feedback.show { display: block; animation: fadeIn .3s; }
+  .quiz-feedback.good { background: rgba(122,158,110,.15); border: 1px solid rgba(122,158,110,.4); color: var(--sand); }
+  .quiz-feedback.bad { background: rgba(196,82,42,.15); border: 1px solid rgba(196,82,42,.4); color: var(--sand); }
+  .quiz-next { margin-top: 12px; width: 100%; padding: 13px; background: var(--sage); color: var(--dark); border: none; border-radius: 10px; font-family: 'DM Sans'; font-size: 14px; font-weight: 700; cursor: pointer; display: none; }
+  .quiz-next.show { display: block; }
+  .quiz-result { text-align: center; padding: 10px 0; }
+  .quiz-result .score { font-family: 'Bebas Neue'; font-size: 64px; color: var(--sage); line-height: 1; }
+  .quiz-result .score-label { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .quiz-result .score-msg { font-size: 14px; color: var(--sand); line-height: 1.6; margin-bottom: 16px; }
+  .quiz-result .apply-result { margin-top: 12px; padding: 14px; background: rgba(122,158,110,.1); border-left: 3px solid var(--sage); border-radius: 0 10px 10px 0; text-align: left; }
+  .quiz-result .apply-result .apply-label { font-size: 10px; letter-spacing: 2px; color: var(--sage); margin-bottom: 6px; }
+  .quiz-result .apply-result p { font-size: 13px; color: var(--sand); line-height: 1.6; }
+  .quiz-retry { padding: 12px 24px; background: var(--clay); color: white; border: none; border-radius: 20px; font-family: 'DM Sans'; font-size: 14px; font-weight: 600; cursor: pointer; margin-right: 8px; }
+  .tab-btn.active { background: var(--sage); border-color: var(--sage); color: var(--dark); font-weight: 600; }
+
+  /* ── DATO DEL DÍA ── */
+  .dato-card {
+    margin: 0 20px 4px; padding: 16px 18px;
+    background: linear-gradient(135deg, rgba(91,143,168,.15), rgba(74,103,65,.15));
+    border: 1px solid rgba(91,143,168,.3); border-radius: 14px;
+    display: flex; gap: 14px; align-items: flex-start; cursor: pointer;
+    transition: background .2s;
+  }
+  .dato-card:active { background: rgba(91,143,168,.22); }
+  .dato-icon { font-size: 26px; flex-shrink: 0; }
+  .dato-label { font-size: 9px; letter-spacing: 3px; color: var(--sky); margin-bottom: 4px; }
+  .dato-text { font-size: 13px; color: var(--sand); line-height: 1.55; }
+  .dato-tap { font-size: 10px; color: var(--muted); margin-top: 5px; letter-spacing: 1px; }
+
+  /* ── STEP DOTS ── */
+  .step-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.15); transition: all .3s; }
+  .step-dot.done { background: var(--sage); }
+  .step-dot.current { background: var(--clay); transform: scale(1.3); }
+
+  /* ── ANSWER ANIMATION ── */
+  @keyframes correctPop { 0%{transform:scale(1)} 40%{transform:scale(1.04)} 100%{transform:scale(1)} }
+  @keyframes wrongShake { 0%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} 100%{transform:translateX(0)} }
+  .choice-btn.correct { animation: correctPop .4s ease; }
+  .choice-btn.wrong { animation: wrongShake .4s ease; }
+
+  /* ── SIMULA TABS ── */
+  .simula-tabs { display: flex; gap: 0; padding: 0 20px 20px; }
+  .simula-tab-btn {
+    flex: 1; padding: 10px 8px; background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1); color: var(--muted);
+    font-family: 'DM Sans'; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s; text-align: center;
+  }
+  .simula-tab-btn:first-child { border-radius: 10px 0 0 10px; }
+  .simula-tab-btn:last-child { border-radius: 0 10px 10px 0; }
+  .simula-tab-btn.active { background: var(--sage); border-color: var(--sage); color: var(--dark); }
+  .simula-section { display: none; }
+  .simula-section.active { display: block; }
+
+  /* ── JUEGOS ── */
+  .juegos-grid { padding: 0 20px; display: flex; flex-direction: column; gap: 14px; }
+  .juego-card {
+    border-radius: 16px; border: 1px solid rgba(255,255,255,.1);
+    overflow: hidden; cursor: pointer; transition: transform .2s;
+  }
+  .juego-card:hover { transform: scale(.98); }
+  .juego-card-inner { padding: 20px; }
+  .juego-tag { font-size: 10px; letter-spacing: 2px; color: var(--gold); margin-bottom: 6px; }
+  .juego-card h3 { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 1px; margin-bottom: 6px; }
+  .juego-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .juego-play-btn {
+    margin-top: 14px; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--gold); color: var(--dark); border: none; border-radius: 20px;
+    padding: 8px 18px; font-family: 'DM Sans'; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .jg-bg-1 { background: linear-gradient(135deg, rgba(139,105,20,.35), rgba(74,48,10,.7)); }
+  .jg-bg-2 { background: linear-gradient(135deg, rgba(91,143,168,.25), rgba(26,46,72,.7)); }
+  .jg-bg-3 { background: linear-gradient(135deg, rgba(196,82,42,.2), rgba(80,25,10,.7)); }
+
+  /* ── GAME SCREEN SHARED ── */
+  #juego-screen { background: var(--dark); display: none; }
+  #juego-screen.active { display: block; }
+  .juego-header { padding: 50px 20px 16px; background: linear-gradient(to bottom, rgba(139,105,20,.3), transparent); border-bottom: 1px solid rgba(255,255,255,.06); }
+  .juego-header h2 { font-family: 'Bebas Neue'; font-size: 26px; letter-spacing: 1px; }
+  .juego-header .back-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--gold); font-family: 'DM Sans'; font-size: 13px; cursor: pointer; margin-bottom: 10px; padding: 0; }
+  .juego-body { padding: 20px; }
+
+  /* ── JUEGO 1: ORDENA LAS PRIORIDADES ── */
+  .priority-intro { font-size: 14px; color: var(--sand); margin-bottom: 20px; line-height: 1.6; }
+  .drag-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .drag-item {
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+    cursor: grab; user-select: none; transition: background .2s, transform .15s;
+  }
+  .drag-item.dragging { opacity: .5; transform: scale(.97); }
+  .drag-item.drag-over { border-color: var(--gold); background: rgba(212,160,23,.1); }
+  .drag-handle { font-size: 18px; flex-shrink: 0; }
+  .drag-rank { font-family: 'Bebas Neue'; font-size: 22px; color: var(--muted); min-width: 28px; }
+  .drag-text { flex: 1; }
+  .drag-text .main { font-size: 14px; font-weight: 500; }
+  .drag-text .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .check-order-btn { width: 100%; padding: 15px; background: var(--gold); color: var(--dark); border: none; border-radius: 12px; font-family: 'DM Sans'; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .order-result { margin-top: 16px; border-radius: 12px; padding: 16px; font-size: 14px; line-height: 1.6; display: none; }
+  .order-result.show { display: block; animation: fadeIn .3s; }
+  .order-result.good { background: rgba(122,158,110,.15); border: 1px solid rgba(122,158,110,.4); color: var(--sand); }
+  .order-result.bad { background: rgba(196,82,42,.15); border: 1px solid rgba(196,82,42,.4); color: var(--sand); }
+
+  /* ── JUEGO 2: QUIZ SUPERVIVENCIA ── */
+  .knot-question { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 1px; margin-bottom: 6px; }
+  .knot-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .knot-visual { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 20px; }
+  .knot-emoji { font-size: 72px; margin-bottom: 10px; }
+  .knot-desc { font-size: 13px; color: var(--sand); line-height: 1.5; }
+  .knot-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .knot-opt { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 14px 10px; cursor: pointer; font-family: 'DM Sans'; font-size: 13px; color: var(--snow); text-align: center; transition: all .2s; }
+  .knot-opt:hover { background: rgba(255,255,255,.1); border-color: var(--gold); }
+  .knot-opt.correct { background: rgba(122,158,110,.2); border-color: var(--sage); animation: correctPop .4s; }
+  .knot-opt.wrong { background: rgba(196,82,42,.2); border-color: var(--clay); animation: wrongShake .4s; }
+  .knot-score-display { text-align: center; font-family: 'Bebas Neue'; font-size: 18px; color: var(--gold); margin-bottom: 16px; }
+
+  /* ── JUEGO 3: SUPERVIVIENTE RÁPIDO ── */
+  .speed-timer { text-align: center; margin-bottom: 16px; }
+  .speed-time { font-family: 'Bebas Neue'; font-size: 56px; color: var(--clay); line-height: 1; }
+  .speed-time-label { font-size: 11px; letter-spacing: 2px; color: var(--muted); }
+  .speed-question { font-family: 'Bebas Neue'; font-size: 21px; letter-spacing: 1px; margin-bottom: 16px; line-height: 1.3; }
+  .speed-choices { display: flex; flex-direction: column; gap: 8px; }
+  .speed-choice { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 13px 15px; cursor: pointer; text-align: left; color: var(--snow); font-family: 'DM Sans'; font-size: 13px; transition: all .15s; }
+  .speed-choice:hover { background: rgba(255,255,255,.12); border-color: var(--clay); }
+  .speed-choice.correct { background: rgba(122,158,110,.2); border-color: var(--sage); }
+  .speed-choice.wrong { background: rgba(196,82,42,.2); border-color: var(--clay); }
+  .speed-streak { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .speed-streak span { font-size: 13px; color: var(--sand); }
+  .streak-fire { font-size: 20px; }
+
+  /* ── PREMIUM LOCK ── */
+  .env-card { position: relative; }
+  .premium-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,.65);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-radius: 16px; gap: 6px; backdrop-filter: blur(2px);
+    pointer-events: none;
+  }
+  .premium-overlay .lock-icon { font-size: 28px; }
+  .premium-overlay .lock-text { font-size: 11px; letter-spacing: 2px; color: var(--gold); font-weight: 600; }
+
+  /* ── CONFIRM RESET ── */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200;
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-box { background: var(--earth); border: 1px solid rgba(255,255,255,.15); border-radius: 20px; padding: 28px; max-width: 320px; width: 100%; text-align: center; }
+  .confirm-box h3 { font-family: 'Bebas Neue'; font-size: 24px; color: var(--clay); margin-bottom: 10px; }
+  .confirm-box p { font-size: 14px; color: var(--sand); line-height: 1.6; margin-bottom: 20px; }
+  .confirm-btns { display: flex; gap: 10px; }
+  .confirm-yes { flex: 1; padding: 12px; background: var(--clay); color: white; border: none; border-radius: 10px; font-family: 'DM Sans'; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .confirm-no { flex: 1; padding: 12px; background: rgba(255,255,255,.1); color: var(--snow); border: none; border-radius: 10px; font-family: 'DM Sans'; font-size: 14px; cursor: pointer; }
+
+  #simula { background: var(--dark); }
+  .simula-header { padding: 50px 20px 20px; background: linear-gradient(to bottom, #1a2e1a, var(--dark)); }
+  .simula-header h2 { font-family: 'Bebas Neue'; font-size: 40px; letter-spacing: 2px; }
+  .sim-cards { padding: 0 20px; display: flex; flex-direction: column; gap: 12px; }
+  .sim-card {
+    border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.08); cursor: pointer;
+    transition: transform .2s;
+  }
+  .sim-card:hover { transform: scale(.98); }
+  .sim-card-inner { padding: 20px; }
+  .sim-card .env-label { font-size: 10px; letter-spacing: 2px; color: var(--sage); margin-bottom: 6px; }
+  .sim-card h3 { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 1px; margin-bottom: 6px; }
+  .sim-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .sim-card .stars { margin-top: 10px; color: var(--gold); font-size: 14px; }
+  .sim-card .play-btn {
+    margin-top: 14px; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--sage); color: var(--dark); border: none; border-radius: 20px;
+    padding: 8px 18px; font-family: 'DM Sans'; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .sim-bg-m { background: linear-gradient(135deg, rgba(45,74,45,.5), rgba(26,50,32,.8)); }
+  .sim-bg-b { background: linear-gradient(135deg, rgba(30,58,30,.5), rgba(20,45,20,.8)); }
+  .sim-bg-c { background: linear-gradient(135deg, rgba(26,46,61,.5), rgba(26,51,70,.8)); }
+
+  /* ── SIMULATOR GAME ── */
+  #sim-game { background: var(--dark); display: none; }
+  #sim-game.active { display: block; }
+  .game-header {
+    padding: 50px 20px 20px;
+    background: linear-gradient(to bottom, rgba(45,74,45,.7), transparent);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .game-header .back-btn {
+    display: flex; align-items: center; gap: 6px; background: none; border: none;
+    color: var(--sage); font-family: 'DM Sans'; font-size: 13px; cursor: pointer; margin-bottom: 12px; padding: 0;
+  }
+  .game-header h2 { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 1px; }
+  .game-header .scenario-tag { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .game-body { padding: 20px; }
+  .scenario-box {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 16px; padding: 20px; margin-bottom: 20px;
+  }
+  .scenario-box .scene-icon { font-size: 40px; margin-bottom: 10px; }
+  .scenario-box p { font-size: 14px; color: var(--sand); line-height: 1.7; }
+  .step-counter { font-size: 11px; letter-spacing: 2px; color: var(--sage); margin-bottom: 16px; }
+  .decision-title { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 1px; margin-bottom: 16px; }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px; padding: 14px 16px; cursor: pointer; text-align: left;
+    color: var(--snow); font-family: 'DM Sans'; font-size: 13px; line-height: 1.5;
+    transition: all .2s;
+  }
+  .choice-btn:hover { background: rgba(255,255,255,.09); border-color: var(--sage); }
+  .choice-btn.correct { background: rgba(122,158,110,.2); border-color: var(--sage); }
+  .choice-btn.wrong { background: rgba(196,82,42,.2); border-color: var(--clay); }
+  .feedback-box {
+    display: none; margin-top: 16px;
+    border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.6;
+  }
+  .feedback-box.show { display: block; animation: fadeIn .3s; }
+  .feedback-box.good { background: rgba(122,158,110,.15); border: 1px solid rgba(122,158,110,.4); color: var(--sand); }
+  .feedback-box.bad { background: rgba(196,82,42,.15); border: 1px solid rgba(196,82,42,.4); color: var(--sand); }
+  .next-btn {
+    margin-top: 12px; width: 100%; padding: 14px; background: var(--sage); color: var(--dark);
+    border: none; border-radius: 12px; font-family: 'DM Sans'; font-size: 15px; font-weight: 700;
+    cursor: pointer; display: none; transition: background .2s;
+  }
+  .next-btn.show { display: block; }
+  .result-card {
+    display: none; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px; padding: 28px; text-align: center;
+  }
+  .result-card.show { display: block; animation: fadeIn .4s; }
+  .result-score { font-family: 'Bebas Neue'; font-size: 72px; color: var(--sage); line-height: 1; }
+  .result-label { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+  .result-msg { font-size: 14px; color: var(--sand); line-height: 1.6; margin-bottom: 20px; }
+  .restart-btn {
+    padding: 12px 28px; background: var(--clay); color: white; border: none;
+    border-radius: 20px; font-family: 'DM Sans'; font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-right: 8px;
+  }
+  .home-btn {
+    padding: 12px 28px; background: rgba(255,255,255,.1); color: var(--snow); border: none;
+    border-radius: 20px; font-family: 'DM Sans'; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── CHECKLIST ── */
+  #checklist { background: var(--dark); }
+  .checklist-header { padding: 50px 20px 20px; background: linear-gradient(to bottom, rgba(139,105,20,.3), transparent); }
+  .checklist-header h2 { font-family: 'Bebas Neue'; font-size: 40px; letter-spacing: 2px; }
+  .checklist-header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .env-selector { display: flex; gap: 8px; padding: 0 20px 16px; overflow-x: auto; }
+  .env-selector::-webkit-scrollbar { display: none; }
+  .env-sel-btn {
+    padding: 10px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,.15);
+    background: none; color: var(--muted); font-family: 'DM Sans'; font-size: 13px;
+    cursor: pointer; white-space: nowrap; transition: all .2s; display: flex; align-items: center; gap: 6px;
+  }
+  .env-sel-btn.active { background: var(--bark); border-color: var(--gold); color: var(--snow); }
+  .checklist-items { padding: 0 20px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer;
+    transition: all .2s;
+  }
+  .check-item.checked { background: rgba(122,158,110,.12); border-color: rgba(122,158,110,.3); }
+  .check-box {
+    width: 22px; height: 22px; border-radius: 6px;
+    border: 2px solid rgba(255,255,255,.2); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s; margin-top: 1px;
+  }
+  .check-item.checked .check-box { background: var(--sage); border-color: var(--sage); }
+  .check-box::after { content: ''; display: none; }
+  .check-item.checked .check-box::after {
+    display: block; content: '✓'; color: var(--dark); font-size: 13px; font-weight: 700;
+  }
+  .check-info .name { font-size: 14px; font-weight: 500; }
+  .check-info .why { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .check-item.checked .check-info .name { color: var(--sage); }
+  .checklist-progress { padding: 16px 20px; }
+  .prog-bar-wrap { background: rgba(255,255,255,.1); border-radius: 20px; height: 6px; overflow: hidden; }
+  .prog-bar { height: 100%; background: var(--sage); border-radius: 20px; transition: width .4s ease; width: 0%; }
+  .prog-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .check-reset {
+    margin: 0 20px 16px; width: calc(100% - 40px); padding: 12px; background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 10px; color: var(--muted);
+    font-family: 'DM Sans'; font-size: 13px; cursor: pointer;
+  }
+
+  /* ── PROGRESO ── */
+  #progreso { background: var(--dark); }
+  .prog-header { padding: 50px 20px 20px; background: linear-gradient(to bottom, rgba(91,143,168,.2), transparent); }
+  .prog-header h2 { font-family: 'Bebas Neue'; font-size: 40px; letter-spacing: 2px; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px 20px; }
+  .stat-card {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px; padding: 18px; text-align: center;
+  }
+  .stat-card .val { font-family: 'Bebas Neue'; font-size: 48px; color: var(--sage); line-height: 1; }
+  .stat-card .lbl { font-size: 11px; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
+  .achievements { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+  .achievement {
+    display: flex; gap: 14px; align-items: center;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 14px;
+  }
+  .achievement .badge-icon { font-size: 32px; }
+  .achievement .info h4 { font-size: 14px; font-weight: 500; }
+  .achievement .info p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .achievement.locked { opacity: .4; }
+  .reg-of-3 { margin: 0 20px 20px; padding: 20px; background: rgba(196,82,42,.12); border: 1px solid rgba(196,82,42,.3); border-radius: 16px; }
+  .reg-of-3 h3 { font-family: 'Bebas Neue'; font-size: 22px; color: var(--clay); margin-bottom: 12px; }
+  .rule-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: flex-start; }
+  .rule-num { font-family: 'Bebas Neue'; font-size: 18px; color: var(--clay); min-width: 32px; }
+  .rule-text { font-size: 13px; color: var(--sand); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="sos-logo">S.O.S</div>
+  <div class="sos-sub">SURVIVAL ON SCENARIOS</div>
+</div>
+
+<!-- ──────────── HOME ──────────── -->
+<div id="home" class="screen active">
+  <div class="hero">
+    <div class="sos-badge">SOS</div>
+    <div class="hero-tag">▲ SUPERVIVENCIA</div>
+    <h1>PREPÁRATE<br><span>ANTES</span><br>DE SALIR.</h1>
+    <p>Aprende a sobrevivir en la naturaleza antes de que lo necesites de verdad.</p>
+  </div>
+
+  <div class="alert-strip">
+    <div class="icon">⚡</div>
+    <div class="text"><strong>¿Estás en una emergencia ahora?</strong> Llama al <strong>112</strong> · Montaña y rescate: <strong>062</strong></div>
+  </div>
+
+  <div class="dato-card" onclick="nextDato()" id="dato-card">
+    <div class="dato-icon" id="dato-icon">🧠</div>
+    <div>
+      <div class="dato-label">▶ DATO DEL DÍA</div>
+      <div class="dato-text" id="dato-text">El cuerpo humano solo puede sobrevivir 3 horas sin refugio en frío extremo — pero 3 semanas sin comida. La comida es siempre lo último en lo que debes preocuparte.</div>
+      <div class="dato-tap">Toca para ver el siguiente →</div>
+    </div>
+  </div>
+
+  <div class="section-title">▼ EMERGENCIA RÁPIDA</div>
+  <div class="situations">
+    <button class="sit-btn" onclick="quickSit('perdido')">
+      <span class="icon">🧭</span>
+      <div><div class="label">Estoy perdido/a</div><div class="sub">Orientación y protocolo de rescate</div></div>
+    </button>
+    <button class="sit-btn" onclick="quickSit('frio')">
+      <span class="icon">🥶</span>
+      <div><div class="label">Tengo mucho frío</div><div class="sub">Hipotermia, refugio y calor corporal</div></div>
+    </button>
+    <button class="sit-btn" onclick="quickSit('herido')">
+      <span class="icon">🩹</span>
+      <div><div class="label">Hay un herido</div><div class="sub">Protocolo PAS · Primeros auxilios</div></div>
+    </button>
+    <button class="sit-btn" onclick="quickSit('agua')">
+      <span class="icon">💧</span>
+      <div><div class="label">Necesito agua</div><div class="sub">Fuentes naturales y potabilización</div></div>
+    </button>
+  </div>
+
+  <div class="section-title">▼ ENTORNOS</div>
+  <div class="env-grid">
+    <div class="env-card env-montana" onclick="goToEnv('montana')">
+      <div class="bg">⛰️</div>
+      <div class="overlay"></div>
+      <div class="info"><div class="badge free">GRATIS</div><h3>Montaña</h3></div>
+    </div>
+    <div class="env-card env-bosque" onclick="goToEnv('bosque')">
+      <div class="bg">🌲</div>
+      <div class="overlay"></div>
+      <div class="info"><div class="badge free">GRATIS</div><h3>Bosque</h3></div>
+    </div>
+    <div class="env-card env-costa" onclick="showPremiumToast()">
+      <div class="bg">🌊</div>
+      <div class="overlay"></div>
+      <div class="info"><div class="badge premium">PREMIUM</div><h3>Costa</h3></div>
+      <div class="premium-overlay"><div class="lock-icon">🔒</div><div class="lock-text">PREMIUM</div></div>
+    </div>
+    <div class="env-card env-desierto" onclick="showPremiumToast()">
+      <div class="bg">🏜️</div>
+      <div class="overlay"></div>
+      <div class="info"><div class="badge premium">PREMIUM</div><h3>Desierto</h3></div>
+      <div class="premium-overlay"><div class="lock-icon">🔒</div><div class="lock-text">PREMIUM</div></div>
+    </div>
+    <div class="env-card env-selva" onclick="showPremiumToast()" style="grid-column: span 2;">
+      <div class="bg">🌿</div>
+      <div class="overlay"></div>
+      <div class="info"><div class="badge premium">PREMIUM</div><h3>Selva Tropical</h3></div>
+      <div class="premium-overlay"><div class="lock-icon">🔒</div><div class="lock-text">PREMIUM</div></div>
+    </div>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<!-- ──────────── APRENDE ──────────── -->
+<div id="aprende" class="screen">
+  <div class="aprende-header">
+    <h2>📚 APRENDE</h2>
+    <p>Fichas de supervivencia por entorno</p>
+  </div>
+  <div class="tab-bar" id="theory-tabs">
+    <button class="tab-btn" onclick="setTheoryTab('universal', this)">Universal</button>
+    <button class="tab-btn" onclick="setTheoryTab('montana', this)">Montaña</button>
+    <button class="tab-btn" onclick="setTheoryTab('bosque', this)">Bosque</button>
+    <button class="tab-btn" onclick="setTheoryTab('costa', this)">Costa</button>
+    <button class="tab-btn" onclick="setTheoryTab('desierto', this)">Desierto</button>
+    <button class="tab-btn" onclick="setTheoryTab('selva', this)">Selva</button>
+    <button class="tab-btn" onclick="startPrep()">🎓 Preparación</button>
+  </div>
+  <div class="theory-content" id="theory-content"></div>
+</div>
+
+<!-- ──────────── SIMULA ──────────── -->
+<div id="simula" class="screen">
+  <div class="simula-header">
+    <h2>🎮 SIMULA</h2>
+    <p>Toma decisiones y pon a prueba tus reflejos</p>
+  </div>
+  <div class="simula-tabs">
+    <button class="simula-tab-btn active" onclick="showSimulaTab('escenarios', this)">🗺️ Escenarios</button>
+    <button class="simula-tab-btn" onclick="showSimulaTab('juegos', this)">🕹️ Juegos</button>
+  </div>
+
+  <!-- Escenarios -->
+  <div id="simula-escenarios" class="simula-section active">
+    <div class="sim-cards">
+      <div class="sim-card sim-bg-m">
+        <div class="sim-card-inner">
+          <div class="env-label">⛰️ MONTAÑA</div>
+          <h3>Noche imprevista en la montaña</h3>
+          <p>Oscurece de repente. GPS sin batería. Temperatura: 5°C.</p>
+          <div class="stars">⭐ Principiante</div>
+          <button class="play-btn" onclick="startSim('m1')">▶ Iniciar simulador</button>
+        </div>
+      </div>
+      <div class="sim-card sim-bg-m">
+        <div class="sim-card-inner">
+          <div class="env-label">⛰️ MONTAÑA</div>
+          <h3>Tormenta en la cima</h3>
+          <p>Solo en alta montaña. Tormenta eléctrica a la vista.</p>
+          <div class="stars">⭐⭐ Intermedio</div>
+          <button class="play-btn" onclick="startSim('m2')">▶ Iniciar simulador</button>
+        </div>
+      </div>
+      <div class="sim-card sim-bg-m">
+        <div class="sim-card-inner">
+          <div class="env-label">⛰️ MONTAÑA</div>
+          <h3>Extravío con herido</h3>
+          <p>Lideras 4 personas. Un herido, niebla y frío.</p>
+          <div class="stars">⭐⭐⭐ Avanzado</div>
+          <button class="play-btn" onclick="startSim('m3')">▶ Iniciar simulador</button>
+        </div>
+      </div>
+      <div class="sim-card sim-bg-b">
+        <div class="sim-card-inner">
+          <div class="env-label">🌲 BOSQUE</div>
+          <h3>Pérdida de orientación</h3>
+          <p>Te desvías del camino. Móvil al 10%.</p>
+          <div class="stars">⭐ Principiante</div>
+          <button class="play-btn" onclick="startSim('b1')">▶ Iniciar simulador</button>
+        </div>
+      </div>
+      <div class="sim-card sim-bg-b">
+        <div class="sim-card-inner">
+          <div class="env-label">🌲 BOSQUE</div>
+          <h3>Noche en el bosque sin equipo</h3>
+          <p>3 personas, tormenta destruye el equipo. 8°C.</p>
+          <div class="stars">⭐⭐ Intermedio</div>
+          <button class="play-btn" onclick="startSim('b2')">▶ Iniciar simulador</button>
+        </div>
+      </div>
+      <div class="sim-card sim-bg-c">
+        <div class="sim-card-inner">
+          <div class="env-label">🌊 COSTA</div>
+          <h3>Corriente de resaca</h3>
+          <p>Eres arrastrado por una corriente marina.</p>
+          <div class="stars">⭐ Principiante</div>
+          <button class="play-btn" onclick="startSim('c1')">▶ Iniciar simulador</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Juegos -->
+  <div id="simula-juegos" class="simula-section">
+    <div class="juegos-grid">
+      <div class="juego-card jg-bg-1">
+        <div class="juego-card-inner">
+          <div class="juego-tag">🧩 JUEGO DE ORDEN</div>
+          <h3>Regla del 3: ¿Qué primero?</h3>
+          <p>Arrastra y ordena las prioridades de supervivencia de más a menos urgente. ¿Sabes cuál va primero?</p>
+          <button class="juego-play-btn" onclick="startJuego('prioridades')">▶ Jugar</button>
+        </div>
+      </div>
+      <div class="juego-card jg-bg-2">
+        <div class="juego-card-inner">
+          <div class="juego-tag">🎯 QUIZ RÁPIDO</div>
+          <h3>Señales de supervivencia</h3>
+          <p>¿Qué significa cada señal? Identifica señales de emergencia, peligros naturales y comunicación sin palabras.</p>
+          <button class="juego-play-btn" onclick="startJuego('senales')">▶ Jugar</button>
+        </div>
+      </div>
+      <div class="juego-card jg-bg-3">
+        <div class="juego-card-inner">
+          <div class="juego-tag">⏱️ CONTRARRELOJ</div>
+          <h3>Superviviente rápido</h3>
+          <p>30 segundos. Máximas preguntas. Cada respuesta correcta suma puntos. ¿Cuánto aguantas?</p>
+          <button class="juego-play-btn" onclick="startJuego('velocidad')">▶ Jugar</button>
+        </div>
+      </div>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- ──────────── JUEGO SCREEN ──────────── -->
+<div id="juego-screen" class="screen">
+  <div class="juego-header">
+    <button class="back-btn" onclick="closeJuego()">◀ Volver</button>
+    <h2 id="juego-title">Juego</h2>
+  </div>
+  <div class="juego-body" id="juego-body"></div>
+</div>
+
+<!-- ──────────── SIM GAME ──────────── -->
+<div id="sim-game" class="screen">
+  <div class="game-header">
+    <button class="back-btn" onclick="closeSim()">◀ Volver</button>
+    <h2 id="game-title">Simulador</h2>
+    <div class="scenario-tag" id="game-tag"></div>
+  </div>
+  <div class="game-body" id="game-body"></div>
+</div>
+
+<!-- ──────────── CHECKLIST ──────────── -->
+<div id="checklist" class="screen">
+  <div class="checklist-header">
+    <h2>🎒 EQUIPO</h2>
+    <p>Checklist por entorno antes de salir</p>
+  </div>
+  <div class="env-selector">
+    <button class="env-sel-btn active" onclick="setCheckEnv('montana', this)">⛰️ Montaña</button>
+    <button class="env-sel-btn" onclick="setCheckEnv('nieve', this)">❄️ Nieve</button>
+    <button class="env-sel-btn" onclick="setCheckEnv('bosque', this)">🌲 Bosque</button>
+    <button class="env-sel-btn" onclick="setCheckEnv('costa', this)">🌊 Costa</button>
+    <button class="env-sel-btn" onclick="setCheckEnv('desierto', this)">🏜️ Desierto</button>
+    <button class="env-sel-btn" onclick="setCheckEnv('selva', this)">🌿 Selva</button>
+  </div>
+  <div class="checklist-progress">
+    <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar"></div></div>
+    <div class="prog-label" id="prog-label">0 de 0 items preparados</div>
+  </div>
+  <button class="check-reset" onclick="askResetChecklist()">↺ Resetear checklist</button>
+  <div class="checklist-items" id="checklist-items"></div>
+</div>
+
+<!-- ──────────── PROGRESO ──────────── -->
+<div id="progreso" class="screen">
+  <div class="prog-header">
+    <h2>🏆 PROGRESO</h2>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="val" id="stat-sims">0</div>
+      <div class="lbl">SIMULADORES</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" id="stat-score">0%</div>
+      <div class="lbl">ACIERTOS</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" id="stat-fichas">0</div>
+      <div class="lbl">FICHAS LEÍDAS</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" id="stat-checks">0</div>
+      <div class="lbl">ITEMS EQUIPO</div>
+    </div>
+  </div>
+
+  <div class="section-title" style="padding-top:0">▼ REGLA DEL 3</div>
+  <div class="reg-of-3">
+    <h3>⚡ La Regla del 3</h3>
+    <div class="rule-row"><div class="rule-num">3'</div><div class="rule-text">Sin aire → Muerte por asfixia. <strong>CRÍTICO</strong></div></div>
+    <div class="rule-row"><div class="rule-num">3h</div><div class="rule-text">Sin refugio en frío extremo → Hipotermia mortal. <strong>MUY ALTA</strong></div></div>
+    <div class="rule-row"><div class="rule-num">3d</div><div class="rule-text">Sin agua → Deshidratación grave. <strong>ALTA</strong></div></div>
+    <div class="rule-row"><div class="rule-num">3sem</div><div class="rule-text">Sin comida → Inanición. <strong>MEDIA</strong></div></div>
+  </div>
+
+  <div class="section-title" style="padding-top:0">▼ LOGROS</div>
+  <div class="achievements">
+    <div class="achievement" id="ach-primer">
+      <div class="badge-icon">🎯</div>
+      <div class="info"><h4>Primer simulador</h4><p>Completa tu primer escenario</p></div>
+    </div>
+    <div class="achievement locked" id="ach-tres">
+      <div class="badge-icon">🌿</div>
+      <div class="info"><h4>Explorador</h4><p>Completa 3 simuladores</p></div>
+    </div>
+    <div class="achievement locked" id="ach-perfecto">
+      <div class="badge-icon">⚡</div>
+      <div class="info"><h4>Sin errores</h4><p>Completa un simulador con 100%</p></div>
+    </div>
+    <div class="achievement locked" id="ach-checklist">
+      <div class="badge-icon">🎒</div>
+      <div class="info"><h4>Preparado</h4><p>Completa un checklist al 100%</p></div>
+    </div>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<!-- ──────────── CONFIRM RESET ──────────── -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3>⚠️ ¿Resetear?</h3>
+    <p>Esto borrará todos los items marcados en este checklist. No se puede deshacer.</p>
+    <div class="confirm-btns">
+      <button class="confirm-yes" onclick="confirmReset()">Sí, borrar</button>
+      <button class="confirm-no" onclick="closeConfirm()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────── PREMIUM TOAST ──────────── -->
+<div id="premium-toast" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bark);border:1px solid var(--gold);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--snow);z-index:300;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap">
+  🔒 Contenido Premium — próximamente disponible
+</div>
+
+<!-- ──────────── NAVIGATION ──────────── -->
+<nav>
+  <button class="active" onclick="showScreen('home', this)"><span class="icon">🏠</span>Inicio</button>
+  <button onclick="showScreen('aprende', this)"><span class="icon">📚</span>Aprende</button>
+  <button onclick="showScreen('simula', this)"><span class="icon">🎮</span>Simula</button>
+  <button onclick="showScreen('checklist', this)"><span class="icon">🎒</span>Equipo</button>
+  <button onclick="showScreen('progreso', this)"><span class="icon">🏆</span>Progreso</button>
+</nav>
+
+<script>
+// ──────────── DATA ────────────
+const THEORY = {
+  universal: [
+    {
+      code: 'U-01', title: 'La Regla del 3 — Prioridades de Supervivencia',
+      content: `
+        <table class="info-table">
+          <tr><th>Tiempo sin...</th><th>Consecuencia</th><th>Prioridad</th></tr>
+          <tr><td>3 minutos sin aire</td><td>Muerte por asfixia</td><td>CRÍTICA</td></tr>
+          <tr><td>3 horas sin refugio (frío)</td><td>Hipotermia mortal</td><td>MUY ALTA</td></tr>
+          <tr><td>3 días sin agua</td><td>Deshidratación grave</td><td>ALTA</td></tr>
+          <tr><td>3 semanas sin comida</td><td>Inanición</td><td>MEDIA</td></tr>
+        </table>
+        <div class="tip-box">💡 Cuando llegues a un escenario evalúa siempre en este orden: ¿hay peligro para respirar? → ¿riesgo térmico? → ¿tengo agua? → ¿tengo comida?</div>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Antes de cualquier ruta, deja una nota en casa con tu recorrido previsto y hora de regreso. Si no vuelves, alguien sabrá dónde buscarte.</p></div>
+      `
+    },
+    {
+      code: 'U-02', title: 'Protocolo PAS — Actuación ante Accidentes',
+      content: `
+        <ul>
+          <li><strong>PROTEGER:</strong> Asegura que el lugar sea seguro antes de actuar. Si el entorno sigue siendo peligroso, no te acerques.</li>
+          <li><strong>AVISAR:</strong> Llama al 112 o envía a alguien mientras permaneces con el herido.</li>
+          <li><strong>SOCORRER:</strong> Aplica primeros auxilios básicos. No muevas al herido salvo peligro inmediato. Mantenlo abrigado y consciente.</li>
+        </ul>
+        <div class="tip-box">⚠️ El 52% de los accidentados en montaña sufren caídas por no haber asegurado el entorno antes de moverse.</div>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Memoriza el 112 y enséñaselo a tu grupo. En España funciona sin cobertura de datos y es totalmente gratuito las 24h.</p></div>
+      `
+    },
+    {
+      code: 'U-03', title: 'Señalización de Emergencia',
+      content: `
+        <table class="info-table">
+          <tr><th>Señal</th><th>Cómo hacerla</th></tr>
+          <tr><td>Espejo / reflejo</td><td>Refleja la luz del sol hacia rescatadores o aeronaves</td></tr>
+          <tr><td>Silbato</td><td>3 pitidos cortos, pausa, 3 pitidos. Código SOS internacional.</td></tr>
+          <tr><td>X en el suelo</td><td>Forma una X grande con piedras o ramas. Mín. 3m de largo.</td></tr>
+          <tr><td>3 hogueras</td><td>Triángulo equilátero, 25m entre cada una.</td></tr>
+          <tr><td>Ropa de color</td><td>Coloca prendas naranjas o rojas en zonas despejadas y elevadas.</td></tr>
+        </table>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Lleva siempre un silbato en tu mochila. Ocupa menos que una moneda y puede salvarte la vida si te quedas sin voz o sin batería.</p></div>
+      `
+    }
+  ],
+  montana: [
+    {
+      code: 'M-01', title: 'Orientación sin GPS',
+      content: `
+        <ul>
+          <li>El sol sale por el Este y se pone por el Oeste. Al mediodía solar apunta al Sur (hemisferio norte).</li>
+          <li><strong>Método del reloj:</strong> apunta la aguja horaria hacia el sol. El punto medio entre esa aguja y las 12 señala al Sur.</li>
+          <li><strong>Estrella Polar:</strong> indica el Norte exacto. Sigue las dos estrellas del extremo de la Osa Mayor 5 veces su distancia.</li>
+          <li>Los líquenes crecen más en la cara Norte de las rocas (menos sol).</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Esta noche busca la Osa Mayor desde casa o desde el campo. Practicar en casa hace que lo recuerdes cuando lo necesites de verdad.</p></div>
+      `
+    },
+    {
+      code: 'M-02', title: 'Hipotermia — Detección y Actuación',
+      content: `
+        <table class="info-table">
+          <tr><th>Síntoma</th><th>Acción</th></tr>
+          <tr><td>Tiritona intensa, piel pálida (32-35°C)</td><td>Alejar del frío, ropa seca, bebida caliente sin alcohol</td></tr>
+          <tr><td>Confusión, somnolencia (28-32°C)</td><td>Emergencia. Llama al 112. No lo dejes dormir.</td></tr>
+          <tr><td>Pérdida de consciencia (&lt;28°C)</td><td>RCP si necesario. Evacuación inmediata. No frotar la piel.</td></tr>
+        </table>
+        <div class="tip-box">⚠️ El 81% de los rescates ocurren en condiciones NO adversas. La hipotermia puede aparecer en días soleados si el sudor moja la ropa.</div>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Lleva siempre una manta isotérmica en la mochila. Pesa menos de 50g, cabe en el bolsillo y retiene el 90% del calor corporal.</p></div>
+      `
+    },
+    {
+      code: 'M-03', title: 'El Sistema de Capas',
+      content: `
+        <ul>
+          <li><strong>Capa base (interior):</strong> Tejido técnico transpirable. NUNCA algodón.</li>
+          <li><strong>Capa media (aislante):</strong> Forro polar o plumas. Retiene el calor.</li>
+          <li><strong>Capa externa (cortavientos):</strong> Impermeable y transpirable.</li>
+        </ul>
+        <div class="tip-box">💡 Si notas frío, añade capa ANTES de tiritar. Si notas calor, quita capa ANTES de sudar. El sudor provoca hipotermia.</div>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Revisa tu equipación antes de salir y descarta el algodón. Una camiseta técnica cuesta desde 10€ y puede marcar la diferencia entre pasar frío o no.</p></div>
+      `
+    },
+    {
+      code: 'M-04', title: 'Refugio de Emergencia',
+      content: `
+        <ul>
+          <li>Busca zona protegida del viento: ladera opuesta, entre rocas grandes.</li>
+          <li>Usa materiales del entorno: ramas largas + hojas secas como aislante.</li>
+          <li>El refugio debe ser pequeño (lo calienta el calor corporal).</li>
+          <li>Aísla el suelo con hojas secas de al menos 15 cm de grosor.</li>
+          <li>La entrada debe estar perpendicular al viento dominante.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>En tu próxima salida al monte, identifica mentalmente dónde construirías un refugio si lo necesitaras. Esta práctica mental te prepara para actuar rápido en emergencias.</p></div>
+      `
+    },
+    {
+      code: 'M-05', title: 'Obtención y Potabilización de Agua',
+      content: `
+        <ul>
+          <li>Busca agua en movimiento (arroyos, manantiales). El agua estancada tiene más bacterias.</li>
+          <li>Recoge agua de lluvia con cualquier superficie impermeable.</li>
+          <li>El rocío de mañana se recolecta frotando telas absorbentes en la vegetación.</li>
+        </ul>
+        <table class="info-table">
+          <tr><th>Método</th><th>Cómo usarlo</th></tr>
+          <tr><td>Hervir</td><td>1 minuto (3 min por encima de 2000m). Mata bacterias y virus.</td></tr>
+          <tr><td>Pastillas potabilizadoras</td><td>Seguir instrucciones. Esperar el tiempo indicado.</td></tr>
+          <tr><td>Filtro de supervivencia</td><td>Elimina bacterias y protozoos pero NO virus.</td></tr>
+        </table>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Lleva siempre pastillas potabilizadoras en la mochila. Son baratas, pesan nada y garantizan que tendrás agua potable aunque se te olvide la cantimplora.</p></div>
+      `
+    }
+  ],
+  bosque: [
+    {
+      code: 'B-01', title: 'Orientación Natural en Bosque',
+      content: `
+        <ul>
+          <li>En bosque denso el sol es difícil de ver. Busca claros o alturas para orientarte.</li>
+          <li>Los ríos y arroyos siempre descienden. Seguirlos lleva a zonas habitadas.</li>
+          <li>Los líquenes crecen en la cara Norte de los troncos.</li>
+          <li>Los hormigueros suelen estar en la cara Sur (más cálida) de los árboles.</li>
+          <li><strong>Si estás perdido: STOP.</strong> Siéntate, piensa, observa y planifica antes de moverte.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>La próxima vez que estés en el bosque, fíjate en la cara norte de los árboles. El liquen verde/grisáceo te indica el Norte de forma fiable.</p></div>
+      `
+    },
+    {
+      code: 'B-02', title: 'Fuego en el Bosque',
+      content: `
+        <ul>
+          <li>Despeja 1 metro de material inflamable alrededor de la hoguera.</li>
+          <li>Enciende sobre roca o tierra húmeda, nunca sobre hojas secas.</li>
+          <li>Nunca abandones el fuego sin apagarlo completamente con agua o tierra.</li>
+          <li>En épocas de riesgo de incendio el fuego está prohibido.</li>
+        </ul>
+        <p style="margin-top:10px;font-size:13px;color:var(--sand)"><strong>Técnica:</strong> Reúne yesca (musgo seco, corteza), leña pequeña y leña grande. Enciende la yesca y añade leña en forma de tipi progresivamente.</p>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Lleva siempre un mechero en tu mochila como mínimo. Encender fuego sin encendedor requiere práctica — intenta aprenderlo en casa o en un taller antes de necesitarlo.</p></div>
+      `
+    },
+    {
+      code: 'B-03', title: 'Alimentación en el Bosque',
+      content: `
+        <div class="tip-box">⚠️ Regla fundamental: en caso de duda, NO comas. Una planta venenosa puede ser mortal. Prioriza siempre el agua sobre la comida.</div>
+        <table class="info-table" style="margin-top:12px">
+          <tr><th>Recurso</th><th>Cómo identificarlo</th></tr>
+          <tr><td>Moras silvestres</td><td>Fruto negro/rojo en tallos con espinas. Seguro maduro.</td></tr>
+          <tr><td>Fresas silvestres</td><td>Fruto rojo pequeño, planta rastrera, olor característico.</td></tr>
+          <tr><td>Avellanas</td><td>En racimos envueltos en hoja rugosa. Árbol de hoja caduca.</td></tr>
+          <tr><td>Bellotas</td><td>Hervirlas para eliminar taninos antes de comer.</td></tr>
+          <tr><td>Ortiga</td><td>Comestible cocinada. Hervida pierde el efecto urticante.</td></tr>
+        </table>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Aprende a reconocer 2-3 plantas comestibles de tu zona durante una excursión normal. El conocimiento práctico en el campo es más útil que cualquier guía.</p></div>
+      `
+    }
+  ],
+  costa: [
+    {
+      code: 'C-01', title: 'Peligros del Mar',
+      content: `
+        <ul>
+          <li><strong>Corrientes de resaca:</strong> NO nades en contra. Nada en paralelo a la costa hasta salir de la corriente.</li>
+          <li><strong>Hipotermia en agua:</strong> El agua extrae calor 25 veces más rápido que el aire. A 15°C la inconsciencia puede llegar en 1-2 horas.</li>
+          <li><strong>Deshidratación:</strong> El agua del mar no es potable. Beberla acelera la deshidratación.</li>
+          <li><strong>Quemaduras:</strong> La radiación solar se refleja en el agua. El riesgo se duplica.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Si ves banderas de aviso en la playa (amarilla o roja), nunca las ignores. Las corrientes de resaca no se ven desde la orilla y son responsables del 80% de los rescates en playa.</p></div>
+      `
+    },
+    {
+      code: 'C-02', title: 'Supervivencia en Costa Aislada',
+      content: `
+        <ul>
+          <li>Busca agua dulce: cava a 1 metro por encima de la línea de marea alta en la playa.</li>
+          <li>Construye refugio alejado de la marea alta (busca marcas de algas en la arena).</li>
+          <li>Señalización: escribe SOS con piedras o algas en la arena. La arena es perfecta para señales grandes.</li>
+          <li>Mariscos adheridos a rocas (mejillones, lapas) son seguros si el agua no está contaminada. Hiérvelos.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>En tu próxima visita a la playa, observa dónde llega la marea alta (línea de algas secas). Acampar por debajo de esta línea puede ser peligroso con marea alta.</p></div>
+      `
+    }
+  ],
+  desierto: [
+    {
+      code: 'D-01', title: 'Gestión del Calor',
+      content: `
+        <ul>
+          <li><strong>Regla de oro:</strong> descansa durante el día (10:00-16:00), muévete al amanecer y al atardecer.</li>
+          <li>El cuerpo pierde entre 1 y 1,5 litros de agua por hora en calor extremo.</li>
+          <li>Cubre todo el cuerpo: ropa clara y holgada protege mejor que ir sin camiseta.</li>
+          <li>La temperatura del suelo puede superar los 70°C. Construye refugio elevado.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>En días de ola de calor en ciudad aplica la misma regla: evita salir entre las 12:00 y las 16:00. Las medidas de supervivencia en desierto son útiles en cualquier entorno caluroso.</p></div>
+      `
+    },
+    {
+      code: 'D-02', title: 'Búsqueda de Agua en Desierto',
+      content: `
+        <ul>
+          <li>Los cauces secos (wadis) pueden tener agua bajo la arena. Cava en la curva exterior del cauce.</li>
+          <li>La vegetación concentrada en un punto indica agua subterránea.</li>
+          <li>El rocío matutino puede recolectarse con una lona o bolsa de plástico sobre la arena por la noche.</li>
+          <li>Los cactus (en América) contienen agua en su interior.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>En cualquier actividad en calor extremo (festival de verano, deporte al sol), lleva siempre el doble de agua de lo que crees necesitar. La deshidratación empieza antes de que tengas sed.</p></div>
+      `
+    }
+  ],
+  selva: [
+    {
+      code: 'S-01', title: 'Peligros Específicos de la Selva',
+      content: `
+        <ul>
+          <li>Serpientes, arañas, escorpiones: nunca metas la mano en agujeros. Sacude la ropa antes de ponértela.</li>
+          <li>Enfermedades: malaria, dengue y zika se transmiten por mosquitos. Usa repelente y ropa larga al anochecer.</li>
+          <li>Infecciones: cualquier herida en ambiente húmedo infecta rápidamente. Desinfecta y cubre inmediatamente.</li>
+          <li>Orientación: sigue cursos de agua siempre hacia abajo.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Antes de viajar a zonas tropicales, consulta con tu médico sobre vacunas necesarias (fiebre amarilla, hepatitis A) y lleva repelente de mosquitos con DEET al 30%.</p></div>
+      `
+    },
+    {
+      code: 'S-02', title: 'Recursos de la Selva',
+      content: `
+        <ul>
+          <li>Agua abundante pero siempre potabilizarla. Los tallos de lianas pueden contener agua potable (cortar y dejar drenar).</li>
+          <li>Fruta: solo consume lo que puedas identificar con certeza.</li>
+          <li>Refugio: construye a más de 1 metro del suelo para evitar insectos y serpientes.</li>
+        </ul>
+        <div class="apply-box"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>Si planeas hacer senderismo en zonas tropicales, lleva siempre pastillas potabilizadoras y una hamaca con mosquitera. Son los dos elementos más importantes para dormir seguro en la selva.</p></div>
+      `
+    }
+  ]
+};
+
+const SIMULATORS = {
+  m1: {
+    title: 'Noche imprevista en la montaña', tag: '⛰️ MONTAÑA · ⭐ PRINCIPIANTE',
+    icon: '🌑', scenario: 'Estás haciendo senderismo con un amigo. Os retrasáis y la oscuridad llega antes de lo esperado. La temperatura baja a 5°C y el GPS se queda sin batería.',
+    steps: [
+      {
+        question: '¿Qué haces primero al quedarte sin GPS y con poca luz?',
+        choices: ['Continúo caminando rápido para llegar antes de noche', 'Me detengo, evalúo mis recursos y busco refugio', 'Llamo al 112 inmediatamente'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. Detenerse y evaluar la situación es lo primero. Continuar en la oscuridad aumenta el riesgo de caídas y te hace perder energía innecesariamente.', bad: '❌ En la oscuridad y sin GPS, seguir caminando es peligroso. El riesgo de caída se multiplica. Primero busca refugio.' }
+      },
+      {
+        question: 'Para construir un refugio de emergencia, ¿qué es más importante?',
+        choices: ['Que sea grande para estar cómodo', 'Que esté aislado del suelo y protegido del viento', 'Que quede cerca del camino principal'],
+        correct: 1,
+        feedback: { good: '✅ Exacto. El suelo extrae el calor corporal mucho más rápido que el aire. Un refugio pequeño, aislado del suelo y protegido del viento es más eficaz que uno grande.', bad: '❌ El tamaño no es lo más importante. El frío del suelo es más peligroso que el del aire. Un refugio pequeño retiene mejor el calor corporal.' }
+      },
+      {
+        question: 'Para que os encuentren por la mañana, ¿cómo señalizáis vuestra posición?',
+        choices: ['Encendéis una sola hoguera grande', 'Hacéis 3 pitidos de silbato periódicamente y formáis una X visible en el suelo', 'Esperáis sin hacer nada para ahorrar energía'],
+        correct: 1,
+        feedback: { good: '✅ Perfecto. 3 pitidos es el código SOS internacional. Una X grande en el suelo es visible desde el aire. Combinar señales sonoras y visuales aumenta las posibilidades de rescate.', bad: '❌ El silencio hace el rescate casi imposible. 3 pitidos de silbato es el código SOS internacional y una X en el suelo es visible desde el aire.' }
+      }
+    ]
+  },
+  m2: {
+    title: 'Tormenta en la cima', tag: '⛰️ MONTAÑA · ⭐⭐ INTERMEDIO',
+    icon: '⛈️', scenario: 'Estás solo en una ruta de alta montaña. Una tormenta eléctrica se acerca rápidamente. El camino de bajada pasa por una zona expuesta. No hay refugio cerca.',
+    steps: [
+      {
+        question: '¿Qué haces al ver que la tormenta se acerca rápidamente?',
+        choices: ['Corres a la cima para ver mejor la tormenta', 'Desciendes inmediatamente buscando cobertura por debajo del nivel de la cresta', 'Montas la tienda en la cima'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. Bajar por debajo del nivel de la cresta reduce drásticamente el riesgo de impacto de rayo. La altitud y las zonas expuestas son las más peligrosas.', bad: '❌ La cima y las zonas expuestas son las más peligrosas en una tormenta eléctrica. Hay que descender siempre.' }
+      },
+      {
+        question: '¿Dónde NO debes estar durante una tormenta eléctrica?',
+        choices: ['Bajo un árbol aislado o en la cima', 'En un valle o hondonada', 'Agachado en terreno llano y abierto'],
+        correct: 0,
+        feedback: { good: '✅ Correcto. Los árboles aislados y las cimas son los puntos más altos: atraen los rayos. Un valle o posición agachada en terreno llano es mucho más seguro.', bad: '❌ Los árboles aislados y las cimas son exactamente los lugares más peligrosos. Los rayos impactan en los puntos más altos del terreno.' }
+      },
+      {
+        question: 'Los rayos caen muy cerca. ¿Qué postura adoptas?',
+        choices: ['Te tumbas en el suelo completamente plano', 'Te agachas en cuclillas sobre las puntas de los pies, pies juntos y manos en las orejas', 'Corres hacia el árbol más grande'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. Esta postura minimiza el área de contacto con el suelo (los rayos pueden viajar por él) y protege los oídos del impacto acústico. No te tumbes: el rayo puede viajar horizontal por el suelo.', bad: '❌ Tumbarse aumenta el área de contacto con el suelo. El rayo puede viajar horizontalmente. La postura en cuclillas sobre las puntas de los pies es la correcta.' }
+      }
+    ]
+  },
+  m3: {
+    title: 'Extravío con herido', tag: '⛰️ MONTAÑA · ⭐⭐⭐ AVANZADO',
+    icon: '🌫️', scenario: 'Lideras un grupo de 4 personas. Uno tuerce el tobillo gravemente. Estáis perdidos, hay niebla y la temperatura desciende rápidamente. Recursos limitados.',
+    steps: [
+      {
+        question: '¿Cuál es tu primera acción con el herido?',
+        choices: ['Le dices que camine, hay que salir de aquí', 'Aplicas el protocolo PAS: asegurar el entorno, llamar al 112, inmovilizar el tobillo sin moverle', 'Dejas al herido y vas a buscar ayuda solo'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. Protocolo PAS: primero asegurar (¿el lugar es seguro?), luego avisar (112), luego socorrer. Inmoviliza el tobillo con lo que tengas. No le muevas innecesariamente.', bad: '❌ El protocolo PAS es: Proteger, Avisar, Socorrer. Mover a alguien con lesión sin inmovilizar puede empeorar la lesión. Primero asegura, llama al 112 e inmoviliza.' }
+      },
+      {
+        question: '¿Divides el grupo o permanecéis juntos?',
+        choices: ['Dividís: 2 van a buscar ayuda y 2 se quedan con el herido', 'Permanecéis todos juntos y enviáis señales de socorro', 'El más fuerte va solo a buscar ayuda'],
+        correct: 0,
+        feedback: { good: '✅ Dividir el grupo es correcto en este caso. 2 personas pueden ir a buscar cobertura para llamar al 112, mientras 2 cuidan al herido. Ir solo es más arriesgado.', bad: '❌ Si hay suficientes personas, dividir el grupo es eficaz: 2 buscan cobertura o ayuda mientras 2 cuidan al herido. Quedarse todos juntos retrasa el rescate.' }
+      },
+      {
+        question: 'La temperatura sigue bajando. ¿Cómo improvisas refugio urgente?',
+        choices: ['Buscáis una zona protegida del viento entre rocas y cubrís al herido con todas las capas disponibles y una manta isotérmica', 'Construís una gran hoguera en campo abierto', 'Seguís caminando para generar calor corporal'],
+        correct: 0,
+        feedback: { good: '✅ Correcto. Zona protegida del viento + capas de ropa + manta isotérmica es la combinación óptima. La manta isotérmica retiene el 90% del calor corporal y pesa nada.', bad: '❌ Seguir caminando con un herido grave agrava la lesión. El refugio del viento y las capas de ropa son la prioridad térmica inmediata.' }
+      }
+    ]
+  },
+  b1: {
+    title: 'Pérdida de orientación', tag: '🌲 BOSQUE · ⭐ PRINCIPIANTE',
+    icon: '🌿', scenario: 'Haces senderismo solo en un bosque. Te desvías del camino sin darte cuenta y no reconoces el entorno. El móvil tiene un 10% de batería.',
+    steps: [
+      {
+        question: '¿Qué haces al darte cuenta de que estás perdido?',
+        choices: ['Corres en la dirección que crees que es correcta', 'Te detienes: STOP (Siéntate, piensa, observa y planifica)', 'Llamas a todos tus contactos para que te localicen'],
+        correct: 1,
+        feedback: { good: '✅ STOP es el acrónimo correcto: Siéntate, piensa, observa, planifica. El pánico hace que te muevas aleatoriamente y te adentres más. Conserva la batería del móvil.', bad: '❌ Correr aleatoriamente en el bosque te aleja más del camino. El protocolo STOP es fundamental: para, piensa, observa y entonces actúa.' }
+      },
+      {
+        question: 'Con el 10% de batería, ¿cómo usas el móvil?',
+        choices: ['Llamas a varios amigos para contarles la situación', 'Llamas al 112 con tu posición GPS y activas el modo avión hasta que llegue el rescate', 'Usas el GPS para intentar orientarte hasta quedarte sin batería'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. Una sola llamada al 112 con tu posición GPS es lo más eficaz. El modo avión conserva la batería residual. El 112 puede localizarte incluso sin cobertura completa.', bad: '❌ El 10% de batería es un recurso precioso. Una sola llamada al 112 con tu posición es más valiosa que varias llamadas a amigos.' }
+      },
+      {
+        question: 'Mientras esperas el rescate, ¿cómo te orientas?',
+        choices: ['Sigues un arroyo hacia abajo: los cursos de agua llevan a zonas habitadas', 'Subes al árbol más alto para ver más', 'Caminas en círculos buscando el camino'],
+        correct: 0,
+        feedback: { good: '✅ Perfecto. Los ríos y arroyos siempre descienden y llevan a zonas habitadas o caminos. Es el método de orientación más fiable en el bosque.', bad: '❌ Seguir un arroyo hacia abajo es la opción más segura. Los cursos de agua siempre descienden hacia zonas más habitadas.' }
+      }
+    ]
+  },
+  b2: {
+    title: 'Noche en el bosque sin equipo', tag: '🌲 BOSQUE · ⭐⭐ INTERMEDIO',
+    icon: '🌩️', scenario: 'Un grupo de 3 personas queda atrapado en el bosque de noche tras una tormenta que destruye parte del equipo. Temperatura: 8°C. Solo tenéis un mechero.',
+    steps: [
+      {
+        question: 'La tormenta destruye vuestra tienda. ¿Cuál es la prioridad inmediata?',
+        choices: ['Buscar comida antes de que sea de noche', 'Construir un refugio improvisado antes de que baje más la temperatura', 'Intentar reparar la tienda'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. La Regla del 3 dicta que 3 horas en frío extremo pueden ser mortales. El refugio es la prioridad absoluta por encima de la comida.', bad: '❌ Recuerda la Regla del 3: 3 horas sin refugio en frío pueden ser mortales. El refugio va antes que la comida.' }
+      },
+      {
+        question: '¿Cómo enciendes fuego con solo un mechero en un bosque mojado tras la tormenta?',
+        choices: ['Intentas encender ramas grandes directamente', 'Buscas yesca seca bajo la corteza de árboles o en el interior de troncos, y construyes un fuego en tipi', 'Gastas todo el gas del mechero en un solo intento'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. El material fino y seco (yesca) se encuentra bajo la corteza o en el interior de troncos incluso tras la lluvia. La forma de tipi permite que el aire alimente el fuego.', bad: '❌ Las ramas grandes no prenden sin una base de fuego. Primero hay que buscar yesca seca (bajo la corteza) y construir el fuego progresivamente en forma de tipi.' }
+      },
+      {
+        question: 'Uno del grupo tiene tiritona intensa y piel pálida. ¿Qué haces?',
+        choices: ['Le dices que haga ejercicio para calentarse', 'Le alejas del frío, le pones ropa seca encima y le das bebida caliente si puedes', 'Le frotas la piel con fuerza para activar la circulación'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. Tiritona + piel pálida indica hipotermia leve (32-35°C). Ropa seca, alejarlo del frío y bebida caliente sin alcohol. NO frotar: puede causar vasoconstricción peligrosa.', bad: '❌ NUNCA frotar a alguien con hipotermia. La tiritona intensa indica hipotermia leve: aleja del frío, añade ropa seca y, si es posible, bebida caliente.' }
+      }
+    ]
+  },
+  c1: {
+    title: 'Corriente de resaca', tag: '🌊 COSTA · ⭐ PRINCIPIANTE',
+    icon: '🌊', scenario: 'Estás nadando en la playa y de repente notas que te alejas de la costa sin poder volver. El agua te arrastra hacia mar adentro.',
+    steps: [
+      {
+        question: 'Notas que la corriente te aleja de la costa. ¿Cuál es tu primera reacción?',
+        choices: ['Nadas directamente hacia la orilla con todas tus fuerzas', 'Te mantienes calmado, conservas energía y no luchas contra la corriente', 'Gritas pidiendo ayuda y dejas de nadar'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. El pánico gasta energía. Una corriente de resaca no es peligrosa si sabes cómo actuar. Primero: mantén la calma y conserva energía.', bad: '❌ Nadar directamente contra una resaca te agotará. Las corrientes de resaca son estrechas pero muy fuertes. La clave es no luchar contra ellas.' }
+      },
+      {
+        question: '¿Cómo sales de una corriente de resaca?',
+        choices: ['Nadas con todas tus fuerzas hacia la orilla', 'Nadas en paralelo a la costa hasta salir de la corriente, luego en diagonal hacia la orilla', 'Te dejas llevar hasta el fondo'],
+        correct: 1,
+        feedback: { good: '✅ Perfecto. Las corrientes de resaca son estrechas. Nada en paralelo a la costa para salir de ella, luego en diagonal hacia la orilla. Nunca directamente contra la corriente.', bad: '❌ Nadar directamente contra la resaca te agotará. La resaca es estrecha: nada en paralelo a la costa para escapar de ella y luego en diagonal hacia la orilla.' }
+      },
+      {
+        question: 'Estás exhausto y no puedes nadar más. ¿Qué haces?',
+        choices: ['Te hundes intentando llegar', 'Flotas boca arriba conservando energía y señalizas pidiendo ayuda', 'Buceas para intentar salir por abajo'],
+        correct: 1,
+        feedback: { good: '✅ Correcto. Flotar boca arriba conserva energía y mantiene tu cara fuera del agua. Señaliza con el brazo. Los socorristas están entrenados para estas situaciones.', bad: '❌ Flotar boca arriba es la mejor opción cuando estás agotado. Conserva energía y señaliza tu posición. Los socorristas son la solución, no el esfuerzo extremo.' }
+      }
+    ]
+  }
+};
+
+const CHECKLISTS = {
+  montana: [
+    { name: 'Mapa topográfico + brújula', why: 'Orientación sin depender de batería ni señal' },
+    { name: 'Linterna frontal + pilas extra', why: 'Visión nocturna y señalización' },
+    { name: 'Manta isotérmica', why: 'Retiene el 90% del calor corporal en hipotermia' },
+    { name: 'Silbato', why: 'Señal sonora audible a más de 1 km' },
+    { name: 'Botiquín básico', why: 'Vendas, desinfectante, analgésicos, esparadrapo' },
+    { name: 'Navaja multiusos', why: 'Cortar, construir refugio, primeros auxilios' },
+    { name: 'Mechero o pedernal', why: 'Encender fuego para calor y señalización' },
+    { name: 'Agua mínimo 2L + pastillas potabilizadoras', why: 'Hidratación y potabilización de fuentes naturales' },
+    { name: 'Comida energética', why: 'Barritas, frutos secos, chocolate' },
+    { name: 'Ropa impermeable extra', why: 'Cambio en caso de hipotermia por ropa mojada' },
+    { name: 'Sistema de capas (base + media + externa)', why: 'Sin algodón en ninguna capa' },
+    { name: 'Calzado de trekking con suela antideslizante', why: 'El 52% de accidentes son tropiezos y caídas' },
+  ],
+  bosque: [
+    { name: 'Brújula + mapa de la zona', why: 'Orientación cuando el GPS falla o se queda sin batería' },
+    { name: 'Mechero + pedernal de repuesto', why: 'El fuego es esencial en el bosque de noche' },
+    { name: 'Silbato', why: 'Se oye a través del bosque denso mejor que la voz' },
+    { name: 'Manta isotérmica', why: 'Emergencia térmica, ligera y compacta' },
+    { name: 'Botiquín con desinfectante', why: 'Las heridas infectan rápido en el bosque' },
+    { name: 'Agua mínimo 1.5L + pastillas', why: 'No bebas agua de charcos sin potabilizar' },
+    { name: 'Ropa de manga larga', why: 'Protección contra insectos, arañazos y frío nocturno' },
+    { name: 'Repelente de insectos', why: 'Especialmente al anochecer' },
+    { name: 'Cuerda ligera (5m)', why: 'Construcción de refugio, atar objetos' },
+    { name: 'Navaja multiusos', why: 'Imprescindible para construir refugio' },
+  ],
+  costa: [
+    { name: 'Protector solar FPS 50+', why: 'La radiación se duplica al reflejarse en el agua' },
+    { name: 'Agua mínimo 3L', why: 'El agua del mar no es potable; deshidratación rápida' },
+    { name: 'Silbato y espejo de señalización', why: 'Para llamar la atención de rescatistas' },
+    { name: 'Chaleco salvavidas', why: 'Si vas en embarcación es obligatorio' },
+    { name: 'Botiquín resistente al agua', why: 'Con antiséptico para heridas de roca o coral' },
+    { name: 'Manta isotérmica', why: 'Hipotermia rápida en agua fría' },
+    { name: 'Ropa de abrigo extra', why: 'El viento marino baja la sensación térmica' },
+    { name: 'Comida calórica', why: 'El frío del agua aumenta el gasto energético' },
+    { name: 'Linterna impermeable', why: 'Si te quedas al anochecer en zona costera' },
+  ],
+  desierto: [
+    { name: 'Agua: mínimo 4L por persona/día', why: 'Se pierde 1-1,5L por hora en calor extremo' },
+    { name: 'Ropa clara y holgada que cubra todo el cuerpo', why: 'Protege más que ir sin camiseta' },
+    { name: 'Sombrero de ala ancha', why: 'Protección solar cabeza y nuca' },
+    { name: 'Protector solar FPS 50+', why: 'Aplicar cada 2 horas' },
+    { name: 'Manta de emergencia', why: 'También protege del calor extremo como reflectante' },
+    { name: 'Brújula', why: 'El desierto no tiene referencias visuales claras' },
+    { name: 'Botiquín con antihistamínico', why: 'Picaduras de escorpión y serpientes son frecuentes' },
+    { name: 'Silbato', why: 'Señalización sin gastar energía' },
+    { name: 'Lona o poncho', why: 'Construir refugio elevado del suelo caliente' },
+    { name: 'Comida de alta densidad calórica', why: 'Frutos secos, barritas; el calor quita el apetito' },
+  ],
+  nieve: [
+    { name: 'Crampones o microspikes', why: 'La nieve compacta y el hielo son responsables del 60% de caídas en invierno' },
+    { name: 'Piolet (en terreno alpino)', why: 'Freno de caída y apoyo en pendientes nevadas' },
+    { name: 'Gafas de sol / gafas de ventisca', why: 'La nieve refleja el 80% de la radiación UV: riesgo de ceguera de nieve' },
+    { name: 'Ropa impermeable y transpirable (Gore-Tex)', why: 'La nieve húmeda empapa la ropa y provoca hipotermia rápida' },
+    { name: 'Guantes impermeables dobles', why: 'Las manos son las primeras en sufrir congelación' },
+    { name: 'Pasamontañas + buff', why: 'La cara y el cuello pierden calor muy rápido con el viento' },
+    { name: 'Arva/DVA (detector víctimas de alud)', why: 'Obligatorio en zonas de riesgo de alud. Sin él, el rescate es imposible' },
+    { name: 'Pala de nieve ligera', why: 'Imprescindible para rescate en alud y construcción de bivac en nieve' },
+    { name: 'Sonda de avalancha', why: 'Localización precisa de víctimas bajo la nieve' },
+    { name: 'Manta isotérmica', why: 'La hipotermia en nieve puede aparecer en minutos' },
+    { name: 'Comida de alta energía', why: 'El frío extremo multiplica el gasto calórico' },
+    { name: 'Botas de invierno impermeables', why: 'Los pies húmedos en frío conllevan congelación en menos de 2 horas' },
+  ],
+  selva: [
+    { name: 'Repelente de mosquitos con DEET 30%+', why: 'Malaria, dengue y zika se transmiten por mosquitos' },
+    { name: 'Ropa de manga larga oscura', why: 'Protección insectos + reduce visibilidad a predadores' },
+    { name: 'Botas impermeables de caña alta', why: 'Protección contra serpientes y barro' },
+    { name: 'Pastillas potabilizadoras', why: 'El agua de la selva siempre debe potabilizarse' },
+    { name: 'Machete', why: 'Abrir camino y construir refugio' },
+    { name: 'Hamaca con mosquitera', why: 'Dormir por encima del suelo: serpientes e insectos' },
+    { name: 'Botiquín con antihistamínico + antiparasitario', why: 'Las picaduras infectan rápido en ambiente húmedo' },
+    { name: 'Silbato', why: 'Señalización cuando la vegetación bloquea la visión' },
+    { name: 'Brújula', why: 'Imposible orientarse visualmente en selva densa' },
+    { name: 'Agua mínimo 2L + filtro', why: 'Siempre hay fuentes pero nunca son seguras sin tratar' },
+  ]
+};
+
+// ──────────── PREP MODULE ────────────
+const PREP_CONTENT = [
+  {
+    title: '1. Planifica antes de salir',
+    body: `<ul>
+      <li>Deja siempre una nota en casa con tu ruta, punto de inicio, destino y hora estimada de regreso.</li>
+      <li>Consulta el parte meteorológico el día anterior y el mismo día.</li>
+      <li>Avisa a alguien de confianza. Si no regresas, esa persona sabrá cuándo y a quién llamar.</li>
+    </ul>`,
+    apply: 'Antes de tu próxima excursión, manda una foto de tu ruta en el mapa a un familiar. Tarda menos de 30 segundos y puede salvarte la vida.'
+  },
+  {
+    title: '2. Conoce tus recursos y equipo',
+    body: `<ul>
+      <li>Revisa tu mochila antes de salir: agua, comida, ropa de abrigo, botiquín, linterna y silbato son básicos.</li>
+      <li>Comprueba que el móvil está cargado al 100% y lleva batería externa si la ruta es larga.</li>
+      <li>Un mapa físico y brújula son imprescindibles: no dependen de batería ni señal.</li>
+    </ul>`,
+    apply: 'Haz una lista de verificación en papel y pégala en tu mochila. Revísala cada vez que salgas al campo, igual que un piloto antes de despegar.'
+  },
+  {
+    title: '3. La Regla del 3 — prioridades en emergencia',
+    body: `<ul>
+      <li><strong>3 minutos</strong> sin aire → muerte. Respira siempre primero.</li>
+      <li><strong>3 horas</strong> sin refugio en frío → hipotermia mortal. Busca abrigo antes que comida.</li>
+      <li><strong>3 días</strong> sin agua → deshidratación grave. El agua va antes que la comida.</li>
+      <li><strong>3 semanas</strong> sin comida → inanición. Es lo último en lo que debes preocuparte.</li>
+    </ul>`,
+    apply: 'La próxima vez que tengas frío en casa o en la calle, recuerda que el refugio térmico es siempre prioridad número dos. Ahora ya sabrás por qué.'
+  },
+  {
+    title: '4. Señalización y comunicación',
+    body: `<ul>
+      <li>El 112 funciona sin cobertura de datos y es gratuito. Memorízalo.</li>
+      <li>3 pitidos de silbato = código SOS internacional.</li>
+      <li>Una X de 3m con piedras o ramas es visible desde el aire.</li>
+      <li>La ropa de colores vivos puesta en alto aumenta la visibilidad a rescatadores.</li>
+    </ul>`,
+    apply: 'Lleva siempre un silbato en la mochila. Pesa menos que un mechero, cabe en cualquier bolsillo y puede sustituir a la voz cuando estás lesionado o sin fuerzas para gritar.'
+  },
+  {
+    title: '5. Mentalidad de supervivencia',
+    body: `<ul>
+      <li><strong>STOP:</strong> Siéntate, piensa, observa, planifica. El pánico mata más que el frío.</li>
+      <li>Acepta la situación antes de actuar. La negación retrasa decisiones vitales.</li>
+      <li>Prioriza conservar energía. Moverse sin plan gasta recursos que necesitarás después.</li>
+      <li>El rescate tarda tiempo. Tu trabajo es sobrevivir hasta que llegue, no resolver todo solo.</li>
+    </ul>`,
+    apply: 'Entrena tu mentalidad en situaciones cotidianas menores: cuando te pierdes en una ciudad, para, respira y observa antes de actuar. El mismo mecanismo funciona en el campo.'
+  }
+];
+
+const PREP_QUIZ = [
+  {
+    q: '¿Cuánto tiempo puede sobrevivir el cuerpo humano sin refugio en frío extremo?',
+    choices: ['3 minutos', '3 horas', '3 días', '3 semanas'],
+    correct: 1,
+    feedback: { good: '✅ Correcto. 3 horas es el límite crítico sin refugio en frío extremo (hipotermia mortal). Por eso el refugio es la segunda prioridad después del aire.', bad: '❌ La respuesta correcta es 3 horas. Sin refugio en frío extremo, la hipotermia puede ser mortal en ese tiempo. Es la segunda prioridad de la Regla del 3.' }
+  },
+  {
+    q: '¿Cuál es la primera acción correcta si te das cuenta de que estás perdido en la montaña?',
+    choices: ['Correr en la dirección que crees que es correcta', 'Llamar a todos tus contactos a la vez', 'Detenerte: STOP (Siéntate, piensa, observa, planifica)', 'Subir al punto más alto para ver mejor'],
+    correct: 2,
+    feedback: { good: '✅ Correcto. El protocolo STOP es lo primero. El pánico hace que te muevas aleatoriamente y te adentres más. Para, piensa y luego actúa.', bad: '❌ La respuesta correcta es STOP: Siéntate, piensa, observa y planifica. Actuar sin pensar en el bosque o la montaña puede empeorar la situación.' }
+  },
+  {
+    q: '¿Qué señal sonora equivale al código SOS internacional?',
+    choices: ['1 pitido largo', '2 pitidos cortos y 1 largo', '3 pitidos cortos, pausa, 3 pitidos', '6 pitidos seguidos'],
+    correct: 2,
+    feedback: { good: '✅ Exacto. 3 pitidos cortos, pausa, 3 pitidos es el código SOS reconocido internacionalmente. Un silbato es audible a más de 1 km.', bad: '❌ El código SOS internacional son 3 pitidos cortos, pausa, 3 pitidos. Un silbato es una herramienta de señalización mucho más potente que la voz.' }
+  },
+  {
+    q: 'Antes de salir de excursión, ¿qué información es esencial dejar a alguien de confianza?',
+    choices: ['Solo el nombre del monte o parque', 'Ruta prevista, punto de inicio, destino y hora de regreso estimada', 'El número del seguro médico', 'La lista de material que llevas'],
+    correct: 1,
+    feedback: { good: '✅ Correcto. La ruta, el punto de inicio, el destino y la hora de regreso son los cuatro datos que permiten a los servicios de rescate encontrarte si no vuelves.', bad: '❌ La información mínima es: ruta prevista, punto de inicio, destino y hora de regreso. Estos cuatro datos permiten a los rescatadores saber dónde y cuándo buscarte.' }
+  },
+  {
+    q: 'En un escenario de supervivencia, ¿qué debes priorizar antes que la comida?',
+    choices: ['Encontrar el camino de regreso', 'Agua potable y refugio', 'Hacer señales para ser rescatado', 'Registrar tu posición GPS'],
+    correct: 1,
+    feedback: { good: '✅ Correcto. Según la Regla del 3, puedes sobrevivir 3 semanas sin comida, pero solo 3 horas sin refugio en frío y 3 días sin agua. Refugio y agua van siempre primero.', bad: '❌ La Regla del 3 es clara: puedes sobrevivir 3 semanas sin comida, pero solo 3 horas sin refugio en frío y 3 días sin agua. Prioriza siempre refugio y agua.' }
+  }
+];
+
+let prepQuizState = { active: false, step: 0, correct: 0 };
+
+function startPrep() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('[onclick="startPrep()"]');
+  if (btn) btn.classList.add('active');
+
+  prepQuizState = { active: false, step: 0, correct: 0 };
+  const container = document.getElementById('theory-content');
+  container.innerHTML = `
+    <div class="prep-module">
+      <div class="prep-intro">
+        <h3>🎓 Módulo de Preparación Previa</h3>
+        <p>Antes de salir al campo, asegúrate de dominar estos 5 bloques fundamentales. Al final, un test de 5 preguntas comprobará lo que has aprendido.</p>
+      </div>
+      ${PREP_CONTENT.map((c, i) => `
+        <div class="prep-content-block">
+          <h4>${c.title}</h4>
+          ${c.body}
+          <div class="prep-apply"><div class="apply-label">▶ APLÍCALO EN TU VIDA</div><p>${c.apply}</p></div>
+        </div>
+      `).join('')}
+      <button class="start-quiz-btn" onclick="startPrepQuiz()">▶ COMENZAR TEST DE REPASO (5 preguntas)</button>
+      <div id="prep-quiz-container"></div>
+    </div>
+  `;
+}
+
+function startPrepQuiz() {
+  prepQuizState = { active: true, step: 0, correct: 0 };
+  document.querySelector('.start-quiz-btn').style.display = 'none';
+  renderPrepQuestion();
+}
+
+function renderPrepQuestion() {
+  const container = document.getElementById('prep-quiz-container');
+  const q = PREP_QUIZ[prepQuizState.step];
+  container.innerHTML = `
+    <div class="quiz-wrap">
+      <div class="quiz-q-num">PREGUNTA ${prepQuizState.step + 1} DE ${PREP_QUIZ.length}</div>
+      <div class="quiz-question">${q.q}</div>
+      <div class="quiz-choices">
+        ${q.choices.map((c, i) => `<button class="quiz-choice" onclick="answerPrep(${i})" id="pq-${i}">${c}</button>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="prep-feedback"></div>
+      <button class="quiz-next" id="prep-next" onclick="nextPrepQuestion()">${prepQuizState.step + 1 < PREP_QUIZ.length ? 'Siguiente pregunta →' : 'Ver resultado'}</button>
+    </div>
+  `;
+}
+
+function answerPrep(idx) {
+  const q = PREP_QUIZ[prepQuizState.step];
+  document.querySelectorAll('.quiz-choice').forEach(b => b.style.pointerEvents = 'none');
+  const fb = document.getElementById('prep-feedback');
+  if (idx === q.correct) {
+    document.getElementById(`pq-${idx}`).classList.add('correct');
+    fb.innerHTML = q.feedback.good;
+    fb.className = 'quiz-feedback show good';
+    prepQuizState.correct++;
+  } else {
+    document.getElementById(`pq-${idx}`).classList.add('wrong');
+    document.getElementById(`pq-${q.correct}`).classList.add('correct');
+    fb.innerHTML = q.feedback.bad;
+    fb.className = 'quiz-feedback show bad';
+  }
+  document.getElementById('prep-next').classList.add('show');
+}
+
+function nextPrepQuestion() {
+  prepQuizState.step++;
+  if (prepQuizState.step >= PREP_QUIZ.length) {
+    showPrepResult();
+  } else {
+    renderPrepQuestion();
+  }
+}
+
+function showPrepResult() {
+  const c = prepQuizState.correct;
+  const total = PREP_QUIZ.length;
+  const pct = Math.round((c / total) * 100);
+  const msg = c >= 4
+    ? '¡Excelente! Tienes los fundamentos de supervivencia bien asentados. Ahora practica con los simuladores.'
+    : c >= 3
+    ? 'Buen trabajo. Has superado el mínimo de 3/5. Repasa los bloques donde fallaste para consolidar los conceptos.'
+    : 'Necesitas repasar el módulo. Lee de nuevo los 5 bloques con atención y vuelve a intentarlo.';
+  const container = document.getElementById('prep-quiz-container');
+  container.innerHTML = `
+    <div class="quiz-wrap quiz-result">
+      <div class="score">${c}/${total}</div>
+      <div class="score-label">respuestas correctas (${pct}%)</div>
+      <div class="score-msg">${msg}</div>
+      <div class="apply-result">
+        <div class="apply-label">▶ APLÍCALO EN TU VIDA</div>
+        <p>La preparación previa reduce el riesgo de accidente en más del 70%. Aplica hoy mismo el hábito de dejar tu ruta escrita antes de cada salida — no importa si es un paseo de 2 horas o una expedición de varios días.</p>
+      </div>
+      <div style="margin-top:18px">
+        <button class="quiz-retry" onclick="startPrep()">↺ Repetir módulo</button>
+      </div>
+    </div>
+  `;
+}
+
+// ──────────── STATE ────────────
+let stats = { sims: 0, correctTotal: 0, questionsTotal: 0, fichasOpened: new Set(), checksTotal: 0 };
+let currentSim = null, currentStep = 0, correctCount = 0;
+let checkStates = {};
+let currentCheckEnv = 'montana';
+
+// ──────────── UTILS ────────────
+function showScreen(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  updateStats();
+}
+
+function goToEnv(env) {
+  setTheoryTab(env, null);
+  const tab = document.querySelector(`[onclick="setTheoryTab('${env}', this)"]`);
+  if (tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    tab.classList.add('active');
+  }
+  showScreen('aprende', document.querySelector('nav button:nth-child(2)'));
+}
+
+function quickSit(type) {
+  const map = { perdido: 'montana', frio: 'montana', herido: 'universal', agua: 'montana' };
+  goToEnv(map[type] || 'universal');
+  setTimeout(() => {
+    const fichas = document.querySelectorAll('.ficha');
+    if (fichas.length > 0) fichas[0].querySelector('.ficha-header').click();
+  }, 300);
+}
+
+// ──────────── THEORY ────────────
+function setTheoryTab(env, btn) {
+  if (btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const data = THEORY[env] || [];
+  const container = document.getElementById('theory-content');
+  container.innerHTML = data.map((f, i) => `
+    <div class="ficha" id="ficha-${env}-${i}">
+      <div class="ficha-header" onclick="toggleFicha('ficha-${env}-${i}', '${env}-${i}')">
+        <span class="num">${f.code}</span>
+        <h3>${f.title}</h3>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="ficha-body">${f.content}</div>
+    </div>
+  `).join('');
+}
+
+function toggleFicha(id, key) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+  if (el.classList.contains('open')) {
+    stats.fichasOpened.add(key);
+    updateStats();
+  }
+}
+
+// ──────────── SIMULATOR ────────────
+function startSim(simId) {
+  currentSim = SIMULATORS[simId];
+  currentStep = 0; correctCount = 0;
+  document.getElementById('game-title').textContent = currentSim.title;
+  document.getElementById('game-tag').textContent = currentSim.tag;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('sim-game').classList.add('active');
+  renderStep();
+}
+
+function closeSim() {
+  document.getElementById('sim-game').classList.remove('active');
+  document.getElementById('simula').classList.add('active');
+}
+
+function renderStep() {
+  const body = document.getElementById('game-body');
+  if (currentStep === 0) {
+    body.innerHTML = `
+      <div class="scenario-box">
+        <div class="scene-icon">${currentSim.icon}</div>
+        <p>${currentSim.scenario}</p>
+      </div>
+      ${renderStepContent()}
+    `;
+  } else if (currentStep >= currentSim.steps.length) {
+    renderResult();
+    return;
+  } else {
+    body.innerHTML = renderStepContent();
+  }
+}
+
+function renderStepContent() {
+  if (currentStep >= currentSim.steps.length) return '';
+  const step = currentSim.steps[currentStep];
+  const dots = currentSim.steps.map((_, i) => {
+    let cls = i < currentStep ? 'done' : i === currentStep ? 'current' : '';
+    return `<div class="step-dot ${cls}"></div>`;
+  }).join('');
+  return `
+    <div class="step-dots">${dots}</div>
+    <div class="step-counter">DECISIÓN ${currentStep + 1} DE ${currentSim.steps.length}</div>
+    <div class="decision-title">${step.question}</div>
+    <div class="choices">
+      ${step.choices.map((c, i) => `<button class="choice-btn" onclick="choose(${i})" id="choice-${i}">${c}</button>`).join('')}
+    </div>
+    <div class="feedback-box" id="feedback"></div>
+    <button class="next-btn" id="next-btn" onclick="nextStep()">${currentStep + 1 < currentSim.steps.length ? 'Siguiente decisión →' : 'Ver resultado'}</button>
+  `;
+}
+
+function choose(idx) {
+  const step = currentSim.steps[currentStep];
+  document.querySelectorAll('.choice-btn').forEach(b => b.style.pointerEvents = 'none');
+  const fb = document.getElementById('feedback');
+  if (idx === step.correct) {
+    document.getElementById(`choice-${idx}`).classList.add('correct');
+    fb.innerHTML = step.feedback.good;
+    fb.className = 'feedback-box show good';
+    correctCount++;
+  } else {
+    document.getElementById(`choice-${idx}`).classList.add('wrong');
+    document.getElementById(`choice-${step.correct}`).classList.add('correct');
+    fb.innerHTML = step.feedback.bad;
+    fb.className = 'feedback-box show bad';
+  }
+  document.getElementById('next-btn').classList.add('show');
+}
+
+function nextStep() {
+  currentStep++;
+  stats.questionsTotal++;
+  if (currentStep >= currentSim.steps.length) {
+    renderResult();
+  } else {
+    document.getElementById('game-body').innerHTML = renderStepContent();
+  }
+}
+
+function renderResult() {
+  stats.sims++;
+  stats.correctTotal += correctCount;
+  const pct = Math.round((correctCount / currentSim.steps.length) * 100);
+  const msg = pct === 100 ? '¡Perfecto! Dominas este escenario. Estás preparado para enfrentarte a esta situación.' :
+    pct >= 66 ? 'Buen trabajo. Repasa las fichas teóricas para mejorar las decisiones que fallaste.' :
+    'Hay margen de mejora. Estudia las fichas del módulo y vuelve a intentarlo.';
+  const applyTips = {
+    m1: 'La próxima vez que hagas senderismo, avisa a alguien de tu ruta y hora de regreso. Si te quedas sin GPS, ese hábito puede salvar tu vida.',
+    m2: 'Antes de tu próxima salida a la montaña, consulta el parte meteorológico de montaña (AEMET). Las tormentas de verano son impredecibles y rápidas.',
+    m3: 'Ensaya mentalmente el protocolo PAS la próxima vez que vayas al campo. ¿Cómo asegurarías el entorno? ¿Qué le dirías al 112? La práctica mental funciona.',
+    b1: 'Antes de entrar en un bosque, fíjate en la orientación del sol. Saber dónde está el Norte desde el principio te evita perderte — es un hábito de 5 segundos.',
+    b2: 'Lleva siempre un mechero y una manta isotérmica, aunque tu ruta sea corta. Las emergencias no avisan y pesan menos de 100g entre los dos.',
+    c1: 'Antes de bañarte en una playa nueva, observa el agua 2 minutos. Las corrientes de resaca se ven como zonas de agua más oscura y con menor oleaje. Ese hábito puede salvarte la vida.'
+  };
+  const simKey = getCurrentSimId();
+  const applyText = applyTips[simKey] || 'Aplica lo aprendido en tu próxima salida. La preparación previa marca la diferencia entre una anécdota y una emergencia real.';
+
+  document.getElementById('game-body').innerHTML = `
+    <div class="result-card show">
+      <div class="result-score">${pct}%</div>
+      <div class="result-label">aciertos</div>
+      <div style="font-size:18px;margin:8px 0">${correctCount}/${currentSim.steps.length} decisiones correctas</div>
+      <div class="result-msg">${msg}</div>
+      <div style="margin:16px 0;padding:14px;background:rgba(122,158,110,.1);border-left:3px solid var(--sage);border-radius:0 10px 10px 0;text-align:left">
+        <div style="font-size:10px;letter-spacing:2px;color:var(--sage);margin-bottom:6px">▶ APLÍCALO EN TU VIDA</div>
+        <div style="font-size:13px;color:var(--sand);line-height:1.6">${applyText}</div>
+      </div>
+      <button class="restart-btn" onclick="startSim(getCurrentSimId())">Repetir</button>
+      <button class="home-btn" onclick="closeSim()">Volver</button>
+    </div>
+  `;
+  updateStats();
+  updateAchievements();
+}
+
+function getCurrentSimId() {
+  return Object.keys(SIMULATORS).find(k => SIMULATORS[k] === currentSim) || 'm1';
+}
+
+// ──────────── CHECKLIST ────────────
+function setCheckEnv(env, btn) {
+  currentCheckEnv = env;
+  document.querySelectorAll('.env-sel-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (!checkStates[env]) checkStates[env] = {};
+  renderChecklist();
+}
+
+function renderChecklist() {
+  const items = CHECKLISTS[currentCheckEnv] || [];
+  const states = checkStates[currentCheckEnv] || {};
+  const container = document.getElementById('checklist-items');
+  container.innerHTML = items.map((item, i) => `
+    <div class="check-item ${states[i] ? 'checked' : ''}" onclick="toggleCheck(${i})">
+      <div class="check-box"></div>
+      <div class="check-info">
+        <div class="name">${item.name}</div>
+        <div class="why">${item.why}</div>
+      </div>
+    </div>
+  `).join('');
+  updateCheckProgress();
+}
+
+function toggleCheck(idx) {
+  if (!checkStates[currentCheckEnv]) checkStates[currentCheckEnv] = {};
+  checkStates[currentCheckEnv][idx] = !checkStates[currentCheckEnv][idx];
+  renderChecklist();
+  updateStats();
+  updateAchievements();
+}
+
+function updateCheckProgress() {
+  const items = CHECKLISTS[currentCheckEnv] || [];
+  const states = checkStates[currentCheckEnv] || {};
+  const checked = Object.values(states).filter(Boolean).length;
+  const total = items.length;
+  const pct = total ? Math.round((checked / total) * 100) : 0;
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = `${checked} de ${total} items preparados (${pct}%)`;
+}
+
+function resetChecklist() {
+  checkStates[currentCheckEnv] = {};
+  renderChecklist();
+  updateStats();
+}
+
+// ──────────── STATS / ACHIEVEMENTS ────────────
+function updateStats() {
+  const pct = stats.questionsTotal > 0 ? Math.round((stats.correctTotal / stats.questionsTotal) * 100) : 0;
+  document.getElementById('stat-sims').textContent = stats.sims;
+  document.getElementById('stat-score').textContent = pct + '%';
+  document.getElementById('stat-fichas').textContent = stats.fichasOpened.size;
+  const totalChecks = Object.values(checkStates).reduce((acc, env) => acc + Object.values(env).filter(Boolean).length, 0);
+  stats.checksTotal = totalChecks;
+  document.getElementById('stat-checks').textContent = totalChecks;
+}
+
+function updateAchievements() {
+  if (stats.sims >= 1) document.getElementById('ach-primer').classList.remove('locked');
+  if (stats.sims >= 3) document.getElementById('ach-tres').classList.remove('locked');
+  const lastPct = currentSim ? Math.round((correctCount / currentSim.steps.length) * 100) : 0;
+  if (lastPct === 100) document.getElementById('ach-perfecto').classList.remove('locked');
+  Object.keys(checkStates).forEach(env => {
+    const items = CHECKLISTS[env];
+    const checked = Object.values(checkStates[env] || {}).filter(Boolean).length;
+    if (items && checked === items.length) document.getElementById('ach-checklist').classList.remove('locked');
+  });
+}
+
+// ──────────── SIMULA TABS ────────────
+function showSimulaTab(tab, btn) {
+  document.querySelectorAll('.simula-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.simula-section').forEach(s => s.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('simula-' + tab).classList.add('active');
+}
+
+// ──────────── PREMIUM TOAST ────────────
+function showPremiumToast() {
+  const t = document.getElementById('premium-toast');
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 2500);
+}
+
+// ──────────── CONFIRM RESET ────────────
+function askResetChecklist() {
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+function confirmReset() {
+  closeConfirm();
+  resetChecklist();
+}
+
+// ──────────── DATO DEL DÍA ────────────
+const DATOS = [
+  { icon: '🧠', text: 'El cuerpo humano solo puede sobrevivir 3 horas sin refugio en frío extremo, pero 3 semanas sin comida. La comida es lo último de lo que debes preocuparte.' },
+  { icon: '💧', text: 'En calor extremo pierdes entre 1 y 1,5 litros de agua por hora. La sed aparece cuando ya llevas un 2% de deshidratación — para entonces ya afecta tu capacidad de pensar.' },
+  { icon: '🧭', text: 'Si estás perdido, el arroyo más cercano es tu mejor guía. Los cursos de agua siempre descienden hacia zonas habitadas o caminos transitados.' },
+  { icon: '📱', text: 'El 112 funciona sin cobertura de datos y sin saldo, desde cualquier red disponible. Memorízalo: es el número más importante que puedes saber.' },
+  { icon: '🌡️', text: 'La hipotermia puede ocurrir en un día soleado de primavera si el sudor moja la ropa. El 81% de los rescates de montaña ocurren en condiciones no adversas.' },
+  { icon: '🔦', text: 'Un silbato es audible a más de 1 km. Consume cero batería, no falla en humedad y es más potente que gritar. Pesa menos que un llavero.' },
+  { icon: '🌿', text: 'La regla de oro ante una planta desconocida es: en caso de duda, no comas. Una sola planta tóxica puede ser mortal. El agua siempre antes que la comida.' },
+  { icon: '⛰️', text: 'Aísla siempre tu cuerpo del suelo. El suelo extrae el calor corporal 25 veces más rápido que el aire. 15 cm de hojas secas bajo ti pueden salvarte la vida.' },
+  { icon: '🧤', text: 'Las manos son las primeras en sufrir congelación. Guantes impermeables y dobles son más importantes que un abrigo extra en condiciones de nieve y viento.' },
+  { icon: '☀️', text: 'En desierto, muévete al amanecer y al atardecer. Descansa a la sombra entre las 10 y las 16h. Esa sola regla multiplica por 3 tu tiempo de supervivencia.' },
+];
+let datoIdx = 0;
+function nextDato() {
+  datoIdx = (datoIdx + 1) % DATOS.length;
+  document.getElementById('dato-icon').textContent = DATOS[datoIdx].icon;
+  document.getElementById('dato-text').textContent = DATOS[datoIdx].text;
+}
+
+// ──────────── JUEGOS ────────────
+let currentJuego = null;
+
+function startJuego(id) {
+  currentJuego = id;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('juego-screen').classList.add('active');
+  const body = document.getElementById('juego-body');
+
+  if (id === 'prioridades') {
+    document.getElementById('juego-title').textContent = '¿Qué primero?';
+    renderJuegoPrioridades(body);
+  } else if (id === 'senales') {
+    document.getElementById('juego-title').textContent = 'Señales de supervivencia';
+    renderJuegoSenales(body);
+  } else if (id === 'velocidad') {
+    document.getElementById('juego-title').textContent = 'Superviviente rápido';
+    renderJuegoVelocidad(body);
+  }
+}
+
+function closeJuego() {
+  if (speedTimer) clearInterval(speedTimer);
+  document.getElementById('juego-screen').classList.remove('active');
+  document.getElementById('simula').classList.add('active');
+}
+
+// ── JUEGO 1: ORDENA PRIORIDADES ──
+const PRIORITY_CORRECT = ['aire', 'refugio', 'agua', 'comida'];
+const PRIORITY_DATA = [
+  { id: 'agua', icon: '💧', main: 'Agua', sub: '3 días sin agua → deshidratación grave' },
+  { id: 'comida', icon: '🍖', main: 'Comida', sub: '3 semanas sin comida → inanición' },
+  { id: 'aire', icon: '💨', main: 'Aire / Respirar', sub: '3 minutos sin aire → muerte' },
+  { id: 'refugio', icon: '🏕️', main: 'Refugio del frío', sub: '3 horas sin refugio → hipotermia mortal' },
+];
+let dragOrder = [];
+let dragSrcIdx = null;
+
+function renderJuegoPrioridades(body) {
+  dragOrder = [...PRIORITY_DATA].sort(() => Math.random() - 0.5);
+  body.innerHTML = `
+    <p class="priority-intro">Arrastra los elementos para ordenarlos de <strong>más urgente</strong> (arriba) a <strong>menos urgente</strong> (abajo) según la Regla del 3.</p>
+    <div class="drag-list" id="drag-list">
+      ${dragOrder.map((item, i) => `
+        <div class="drag-item" draggable="true" data-idx="${i}"
+          ondragstart="dragStart(event,${i})" ondragover="dragOver(event,${i})" ondrop="dropItem(event,${i})" ondragleave="dragLeave(event)"
+          ontouchstart="touchStart(event,${i})" ontouchmove="touchMove(event)" ontouchend="touchEnd(event,${i})">
+          <div class="drag-handle">☰</div>
+          <div class="drag-rank">${i + 1}</div>
+          <div class="drag-text"><div class="main">${item.icon} ${item.main}</div><div class="sub">${item.sub}</div></div>
+        </div>
+      `).join('')}
+    </div>
+    <button class="check-order-btn" onclick="checkOrder()">✓ Comprobar orden</button>
+    <div class="order-result" id="order-result"></div>
+  `;
+}
+
+function dragStart(e, idx) { dragSrcIdx = idx; e.dataTransfer.effectAllowed = 'move'; }
+function dragOver(e, idx) {
+  e.preventDefault();
+  document.querySelectorAll('.drag-item').forEach(el => el.classList.remove('drag-over'));
+  document.querySelector(`.drag-item[data-idx="${idx}"]`).classList.add('drag-over');
+}
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function dropItem(e, idx) {
+  e.preventDefault();
+  if (dragSrcIdx === null || dragSrcIdx === idx) return;
+  const tmp = dragOrder[dragSrcIdx];
+  dragOrder.splice(dragSrcIdx, 1);
+  dragOrder.splice(idx, 0, tmp);
+  dragSrcIdx = null;
+  const body = document.getElementById('juego-body');
+  const result = document.getElementById('order-result');
+  const resultHTML = result ? result.outerHTML : '';
+  renderJuegoPrioridades(body);
+  if (resultHTML) document.getElementById('order-result').outerHTML = resultHTML;
+}
+
+// Touch drag support
+let touchDragIdx = null;
+let touchClone = null;
+function touchStart(e, idx) { touchDragIdx = idx; }
+function touchMove(e) { e.preventDefault(); }
+function touchEnd(e, idx) {
+  if (touchDragIdx !== null && touchDragIdx !== idx) {
+    const tmp = dragOrder[touchDragIdx];
+    dragOrder.splice(touchDragIdx, 1);
+    dragOrder.splice(idx, 0, tmp);
+    const body = document.getElementById('juego-body');
+    renderJuegoPrioridades(body);
+  }
+  touchDragIdx = null;
+}
+
+function checkOrder() {
+  const result = document.getElementById('order-result');
+  const correct = dragOrder.map(d => d.id).join(',') === PRIORITY_CORRECT.join(',');
+  if (correct) {
+    result.innerHTML = '✅ <strong>¡Perfecto!</strong> Ese es el orden correcto de la Regla del 3. Aire → Refugio → Agua → Comida. Ahora lo tienes grabado para siempre.';
+    result.className = 'order-result show good';
+  } else {
+    result.innerHTML = '❌ No del todo. El orden correcto es: <strong>1. Aire</strong> (3 min) → <strong>2. Refugio</strong> (3h) → <strong>3. Agua</strong> (3 días) → <strong>4. Comida</strong> (3 semanas). ¡Inténtalo de nuevo!';
+    result.className = 'order-result show bad';
+  }
+}
+
+// ── JUEGO 2: SEÑALES QUIZ ──
+const SENALES_QUIZ = [
+  { emoji: '🔴🔴🔴', desc: 'Tres luces o señales rojas en el cielo, lanzadas en rápida sucesión', options: ['Señal de victoria', 'SOS — auxilio urgente', 'Zona de aterrizaje', 'Tormenta próxima'], correct: 1, explain: 'Tres señales rojas (bengalas, etc.) es el código internacional de socorro urgente en mar y montaña.' },
+  { emoji: '❌', desc: 'Una X grande formada con ramas o piedras en terreno abierto, visible desde el aire', options: ['Zona peligrosa, no aterrizar', 'Pedir ayuda médica', 'Necesito rescate — enviar ayuda', 'Campamento seguro'], correct: 2, explain: 'Una X grande en el suelo (mín. 3m) es la señal visual de "necesito rescate" reconocida por todos los cuerpos de rescate aéreo.' },
+  { emoji: '🟡🟡🟡', desc: 'Tres grupos de 3 pitidos de silbato con pausa entre grupos', options: ['Señal de reunión del grupo', 'Aviso de peligro ambiental', 'Código Morse SOS internacional', 'El rescate ha llegado'], correct: 2, explain: '3 pitidos — pausa — 3 pitidos es el SOS internacional con silbato. Un silbato se oye a más de 1 km.' },
+  { emoji: '🔥🔥🔥', desc: 'Tres hogueras formando un triángulo equilátero, separadas 25m entre sí', options: ['Señal de campamento permanente', 'Señal de peligro de incendio', 'Señal de socorro visible desde el aire', 'Ritual de orientación'], correct: 2, explain: 'Tres hogueras en triángulo es la señal de socorro nocturna más potente. Visible a kilómetros desde el aire.' },
+  { emoji: '🪞', desc: 'Un espejo o superficie reflectante orientado hacia el sol y dirigido a una aeronave', options: ['Indicar la dirección del campamento', 'Cegamiento defensivo', 'Señalización de posición a rescatadores', 'Medir la hora solar'], correct: 2, explain: 'Un destello de espejo al sol puede verse a 16 km en condiciones favorables. Es la señal visual más potente sin equipo electrónico.' },
+  { emoji: '🟢⬛🟢', desc: 'Señal en tierra: tela verde a ambos lados de una zona despejada rectangular oscura', options: ['Zona de aterrizaje disponible', 'Señal de que todo está bien', 'Necesito agua', 'Peligro en el agua'], correct: 0, explain: 'En señalización de tierra a aire, dos franjas de color claro a ambos lados de una zona oscura indica zona de aterrizaje apta.' },
+];
+let senalesState = { step: 0, correct: 0 };
+
+function renderJuegoSenales(body) {
+  senalesState = { step: 0, correct: 0 };
+  renderSenalQuestion(body);
+}
+
+function renderSenalQuestion(body) {
+  if (senalesState.step >= SENALES_QUIZ.length) {
+    const pct = Math.round((senalesState.correct / SENALES_QUIZ.length) * 100);
+    body.innerHTML = `
+      <div class="knot-score-display">Puntuación final: ${senalesState.correct}/${SENALES_QUIZ.length} (${pct}%)</div>
+      <div class="order-result show ${pct >= 66 ? 'good' : 'bad'}">
+        ${pct === 100 ? '🏆 ¡Perfecto! Conoces todas las señales de emergencia.' : pct >= 66 ? '✅ Buen resultado. Repasa las señales que fallaste — en una emergencia no hay segunda oportunidad.' : '⚠️ Necesitas repasar las señales. Son básicas para poder ser rescatado.'}
+      </div>
+      <div style="margin-top:20px;text-align:center">
+        <button class="juego-play-btn" onclick="renderJuegoSenales(document.getElementById('juego-body'))">↺ Repetir</button>
+      </div>
+    `;
+    return;
+  }
+  const q = SENALES_QUIZ[senalesState.step];
+  body.innerHTML = `
+    <div class="knot-score-display">✓ ${senalesState.correct} / ${SENALES_QUIZ.length} · Pregunta ${senalesState.step + 1}</div>
+    <div class="knot-visual">
+      <div class="knot-emoji">${q.emoji}</div>
+      <div class="knot-desc">${q.desc}</div>
+    </div>
+    <div class="knot-question">¿Qué significa esta señal?</div>
+    <div class="knot-options">
+      ${q.options.map((opt, i) => `<button class="knot-opt" onclick="answerSenal(${i})" id="sopt-${i}">${opt}</button>`).join('')}
+    </div>
+    <div class="quiz-feedback" id="senal-feedback"></div>
+    <button class="quiz-next show" id="senal-next" onclick="nextSenalQ()" style="display:none;margin-top:12px;width:100%;padding:13px;background:var(--sage);color:var(--dark);border:none;border-radius:10px;font-family:'DM Sans';font-size:14px;font-weight:700;cursor:pointer">${senalesState.step + 1 < SENALES_QUIZ.length ? 'Siguiente →' : 'Ver resultado'}</button>
+  `;
+}
+
+function answerSenal(idx) {
+  const q = SENALES_QUIZ[senalesState.step];
+  document.querySelectorAll('.knot-opt').forEach(b => b.style.pointerEvents = 'none');
+  const fb = document.getElementById('senal-feedback');
+  if (idx === q.correct) {
+    document.getElementById(`sopt-${idx}`).classList.add('correct');
+    fb.innerHTML = `✅ ${q.explain}`;
+    fb.className = 'quiz-feedback show good';
+    senalesState.correct++;
+  } else {
+    document.getElementById(`sopt-${idx}`).classList.add('wrong');
+    document.getElementById(`sopt-${q.correct}`).classList.add('correct');
+    fb.innerHTML = `❌ ${q.explain}`;
+    fb.className = 'quiz-feedback show bad';
+  }
+  document.getElementById('senal-next').style.display = 'block';
+}
+
+function nextSenalQ() {
+  senalesState.step++;
+  renderSenalQuestion(document.getElementById('juego-body'));
+}
+
+// ── JUEGO 3: SUPERVIVIENTE RÁPIDO ──
+const SPEED_QS = [
+  { q: '¿Cuánto tiempo sin aire?', opts: ['3 min', '3 horas', '3 días', '3 semanas'], c: 0 },
+  { q: '¿A qué número llamas en emergencia en España?', opts: ['091', '112', '062', '016'], c: 1 },
+  { q: '¿Qué significa STOP en supervivencia?', opts: ['Señal, Técnica, Orden, Plan', 'Siéntate, piensa, observa, planifica', 'Solo tú o pides', 'Supervivencia total'], c: 1 },
+  { q: '¿Cuánto tiempo sin refugio en frío?', opts: ['3 minutos', '3 horas', '3 días', '3 semanas'], c: 1 },
+  { q: '¿Qué haces ante una corriente de resaca?', opts: ['Nadas hacia la orilla', 'Nadas en paralelo a la costa', 'Te sumerges', 'Pides ayuda sin moverte'], c: 1 },
+  { q: '¿Qué tipo de agua potabiliza el hervido?', opts: ['Solo bacterias', 'Solo virus', 'Bacterias y virus', 'Todo excepto metales'], c: 2 },
+  { q: '¿Qué señal sonora es el SOS?', opts: ['1 pitido largo', '3 pitidos cortos + pausa + 3', '6 pitidos seguidos', '2 cortos y 1 largo'], c: 1 },
+  { q: '¿Qué NO debes hacer ante hipotermia?', opts: ['Dar bebida caliente', 'Poner ropa seca', 'Frotar la piel con fuerza', 'Alejar del frío'], c: 2 },
+  { q: 'En un bosque perdido, ¿qué sigues?', opts: ['Las estrellas', 'Un arroyo hacia abajo', 'El viento', 'Los pájaros'], c: 1 },
+  { q: '¿Cuánto tiempo sin agua?', opts: ['3 minutos', '3 horas', '3 días', '3 semanas'], c: 2 },
+  { q: '¿Dónde NO estar en tormenta eléctrica?', opts: ['En un valle', 'Bajo árbol aislado o en cima', 'Agachado en terreno llano', 'En una cueva'], c: 1 },
+  { q: '¿Qué retiene una manta isotérmica?', opts: ['40% calor corporal', '65% calor corporal', '90% calor corporal', '100% calor corporal'], c: 2 },
+];
+let speedTimer = null;
+let speedState = { timeLeft: 30, qIdx: 0, score: 0, streak: 0, answered: false, shuffled: [] };
+
+function renderJuegoVelocidad(body) {
+  if (speedTimer) clearInterval(speedTimer);
+  speedState = { timeLeft: 30, qIdx: 0, score: 0, streak: 0, answered: false, shuffled: [...SPEED_QS].sort(() => Math.random() - 0.5) };
+  renderSpeedQ(body);
+  speedTimer = setInterval(() => {
+    speedState.timeLeft--;
+    const el = document.getElementById('speed-time');
+    if (el) el.textContent = speedState.timeLeft;
+    if (el) el.style.color = speedState.timeLeft <= 10 ? 'var(--clay)' : 'var(--snow)';
+    if (speedState.timeLeft <= 0) {
+      clearInterval(speedTimer);
+      showSpeedResult();
+    }
+  }, 1000);
+}
+
+function renderSpeedQ(body) {
+  if (speedState.qIdx >= speedState.shuffled.length) {
+    showSpeedResult(); return;
+  }
+  const q = speedState.shuffled[speedState.qIdx];
+  speedState.answered = false;
+  body.innerHTML = `
+    <div class="speed-timer">
+      <div class="speed-time" id="speed-time">${speedState.timeLeft}</div>
+      <div class="speed-time-label">SEGUNDOS RESTANTES</div>
+    </div>
+    <div class="speed-streak"><span class="streak-fire">🔥</span><span>Racha: ${speedState.streak} · Puntos: ${speedState.score}</span></div>
+    <div class="speed-question">${q.q}</div>
+    <div class="speed-choices">
+      ${q.opts.map((o, i) => `<button class="speed-choice" onclick="answerSpeed(${i})" id="sc-${i}">${o}</button>`).join('')}
+    </div>
+  `;
+}
+
+function answerSpeed(idx) {
+  if (speedState.answered) return;
+  speedState.answered = true;
+  const q = speedState.shuffled[speedState.qIdx];
+  document.querySelectorAll('.speed-choice').forEach(b => b.style.pointerEvents = 'none');
+  if (idx === q.c) {
+    document.getElementById(`sc-${idx}`).classList.add('correct');
+    speedState.score += 10 + (speedState.streak * 2);
+    speedState.streak++;
+  } else {
+    document.getElementById(`sc-${idx}`).classList.add('wrong');
+    document.getElementById(`sc-${q.c}`).classList.add('correct');
+    speedState.streak = 0;
+  }
+  speedState.qIdx++;
+  setTimeout(() => renderSpeedQ(document.getElementById('juego-body')), 700);
+}
+
+function showSpeedResult() {
+  clearInterval(speedTimer);
+  const body = document.getElementById('juego-body');
+  const msg = speedState.score >= 100 ? '🏆 ¡Superviviente élite! Reflejos de experto.' : speedState.score >= 50 ? '💪 Buen resultado. Sigue practicando para mejorar tu racha.' : '📖 Repasa los módulos y vuelve a intentarlo.';
+  body.innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-family:'Bebas Neue';font-size:80px;color:var(--gold);line-height:1">${speedState.score}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">PUNTOS</div>
+      <div style="font-size:14px;color:var(--sand);margin-bottom:20px">${msg}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Preguntas respondidas: ${speedState.qIdx} · Racha máxima: ${speedState.streak}🔥</div>
+      <button class="juego-play-btn" onclick="renderJuegoVelocidad(document.getElementById('juego-body'))">↺ Repetir</button>
+    </div>
+  `;
+}
+
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loading = document.getElementById('loading');
+    loading.style.opacity = '0';
+    setTimeout(() => loading.style.display = 'none', 600);
+  }, 1500);
+  const firstTab = document.querySelector('.tab-btn');
+  if (firstTab) firstTab.classList.add('active');
+  setTheoryTab('universal', null);
+  setCheckEnv('montana', null);
+});
+</script>
+</body>
+</html>
